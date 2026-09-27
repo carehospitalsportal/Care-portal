@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#07111f"
+  >
+
+  <title>SOS Line</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="./css/style.css?v=4"
+  >
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div>
+    <div class="eyebrow">
+      NEW MODERN MISSION
+    </div>
+
+    <h1>
+      Safe Route
+    </h1>
+
+    <p>
+     No-Sim Requirement: Chat • Call • Maps • Route Advice
+    </p>
+  </div>
+
+  <button
+    id="locateBtn"
+    class="primary"
+  >
+    📍 Locate me
+  </button>
+
+</header>
+
+
+<main class="app">
+
+  <!-- MAP -->
+
+  <section class="map-wrap">
+
+    <div id="map"></div>
+
+    <div
+      id="mapStatus"
+      class="map-status"
+    >
+      Getting your location...
+    </div>
+
+  </section>
+
+
+  <!-- RIGHT SIDE -->
+
+  <aside class="side">
+
+
+    <!-- COMMUNICATION -->
+
+    <section class="card">
+
+      <div class="title-row">
+
+        <h2>
+          💬 Communication
+        </h2>
+
+        <span
+          id="connection"
+          class="badge"
+        >
+          Offline
+        </span>
+
+      </div>
+
+
+      <!-- TEMPORARY ID -->
+
+      <div class="safe-id-box">
+
+        <div class="small">
+          YOUR SAFE ROUTE ID
+        </div>
+
+        <div
+          id="mySafeId"
+          class="safe-id"
+        >
+          Creating...
+        </div>
+
+        <button
+          id="copyId"
+          class="secondary full"
+        >
+          📋 Copy my ID
+        </button>
+
+      </div>
+
+
+      <!-- CONNECT -->
+
+      <div class="connect-box">
+
+        <div class="small">
+          TYPE OTHER'S USER ID BELOW
+        </div>
+
+        <div class="row">
+
+          <input
+            id="friendId"
+            placeholder="Example: SR-7K4P9"
+            maxlength="9"
+          >
+
+          <button
+            id="connectBtn"
+            class="primary"
+          >
+            Connect
+          </button>
+
+        </div>
+
+        <div
+          id="connectStatus"
+          class="small"
+        ></div>
+
+      </div>
+
+
+      <!-- COMMUNICATION TABS -->
+
+      <div class="tabs">
+
+        <button
+          class="tab active"
+          data-tab="chat"
+        >
+          💬 Chat
+        </button>
+
+        <button
+          class="tab"
+          data-tab="voice"
+        >
+          🎙️ Voice
+        </button>
+
+        <button
+          class="tab"
+          data-tab="call"
+        >
+          📞 Call
+        </button>
+
+        <button
+          class="tab"
+          data-tab="share"
+        >
+          📍 Share
+        </button>
+
+      </div>
+
+
+      <!-- CHAT -->
+
+      <div
+        id="chatPanel"
+        class="panel"
+      >
+
+        <div
+          id="chatName"
+          class="small blue"
+        >
+          No user connected
+        </div>
+
+
+        <div
+          id="messages"
+          class="messages"
+        >
+
+          <div class="muted">
+            Connect to another Safe Route ID to start chatting.
+          </div>
+
+        </div>
+
+
+        <div class="row">
+
+          <input
+            id="message"
+            placeholder="Type a message..."
+          >
+
+          <button
+            id="send"
+            class="primary"
+          >
+            Send
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- VOICE MESSAGE -->
+
+      <div
+        id="voicePanel"
+        class="panel hidden"
+      >
+
+        <div class="muted">
+          Record a voice message and send it to the connected user.
+        </div>
+
+
+        <div class="record-row">
+
+          <button
+            id="record"
+            class="record"
+          >
+            🎙️ Start recording
+          </button>
+
+          <span id="timer">
+            00:00
+          </span>
+
+        </div>
+
+
+        <audio
+          id="preview"
+          controls
+          class="audio hidden"
+        ></audio>
+
+
+        <button
+          id="sendVoice"
+          class="secondary full hidden"
+        >
+          Send voice message
+        </button>
+
+      </div>
+
+
+      <!-- CALL -->
+
+      <div
+        id="callPanel"
+        class="panel hidden"
+      >
+
+        <div class="muted">
+          Internet voice call between Safe Route users Do Not close this page or reload.
+        </div>
+
+
+        <div
+          id="callStatus"
+          class="call-status"
+        >
+          No active call
+        </div>
+
+
+        <div class="row">
+
+          <button
+            id="call"
+            class="primary"
+          >
+            📞 Call
+          </button>
+
+          <button
+            id="hangup"
+            class="danger"
+          >
+            End
+          </button>
+
+        </div>
+
+
+        <audio
+          id="remoteAudio"
+          autoplay
+        ></audio>
+
+      </div>
+
+
+      <!-- SHARE LOCATION -->
+
+      <div
+        id="sharePanel"
+        class="panel hidden"
+      >
+
+        <div class="muted">
+          Send your current GPS position to the connected user.
+        </div>
+
+
+        <button
+          id="shareLocation"
+          class="primary full"
+        >
+          📍 Share my location
+        </button>
+
+
+        <div
+          id="shareStatus"
+          class="small"
+        ></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ROUTE -->
+
+    <section class="card">
+
+      <div class="title-row">
+
+        <h2>
+          🧭 Route Advisory
+        </h2>
+
+        <span
+          id="routeState"
+          class="badge"
+        >
+          Waiting
+        </span>
+
+      </div>
+
+
+      <div class="row">
+
+        <input
+          id="destination"
+          placeholder="Destination, e.g. Charminar"
+        >
+
+        <button
+          id="route"
+          class="secondary"
+        >
+          Route
+        </button>
+
+      </div>
+
+
+      <div
+        id="routeInfo"
+        class="route-info muted"
+      >
+        Enter a destination.
+      </div>
+
+    </section>
+
+
+    <!-- NEARBY -->
+
+    <section class="card">
+
+      <div class="title-row">
+
+        <h2>
+          📍 Nearby
+        </h2>
+
+        <button
+          id="refresh"
+          class="icon"
+        >
+          ↻
+        </button>
+
+      </div>
+
+
+      <div class="nearby">
+
+        <button data-kind="metro">
+          🚇
+          <span>Metro</span>
+        </button>
+
+        <button data-kind="bus">
+          🚌
+          <span>Bus</span>
+        </button>
+
+        <button data-kind="fuel">
+          ⛽
+          <span>Fuel</span>
+        </button>
+
+        <button data-kind="atm">
+          🏧
+          <span>ATM</span>
+        </button>
+
+      </div>
+
+
+      <div
+        id="nearbyResults"
+        class="results muted"
+      >
+        Choose a category.
+      </div>
+
+    </section>
+
+
+    <!-- EMERGENCY -->
+
+    <section class="card emergency">
+
+      <h2>
+        🚨 Emergency
+      </h2>
+
+
+      <div class="emergency-grid">
+
+        <a href="tel:112">
+          🚓
+          <b>Police</b>
+          <small>100</small>
+        </a>
+
+
+        <a href="tel:108">
+          🚑
+          <b>Ambulance</b>
+          <small>108</small>
+        </a>
+
+
+        <a href="tel:101">
+          🔥
+          <b>Fire</b>
+          <small>101</small>
+        </a>
+
+
+        <a href="tel:112">
+          🆘
+          <b>Emergency</b>
+          <small>112</small>
+        </a>
+
+      </div>
+
+    </section>
+
+  </aside>
+
+</main>
+
+
+<footer>
+  SOS • Phase 1 Built & Developed by Murali Manohar.
+</footer>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+
+<script src="./js/config.js?v=5"></script>
+
+<script src="./js/app.js?v=5"></script>
+
+</body>
+</html>
