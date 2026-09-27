@@ -22,7 +22,7 @@
 
   <link
     rel="stylesheet"
-    href="./css/style.css?v=4"
+    href="./css/style.css?v=6"
   >
 </head>
 
@@ -40,7 +40,7 @@
     </h1>
 
     <p>
-     No-Sim Requirement: Chat • Call • Maps • Route Advice
+      No-Sim Requirement: Chat • Call • Maps • Route Advice
     </p>
   </div>
 
@@ -97,7 +97,7 @@
       </div>
 
 
-      <!-- TEMPORARY ID -->
+      <!-- SAFE ROUTE ID -->
 
       <div class="safe-id-box">
 
@@ -135,7 +135,7 @@
           <input
             id="friendId"
             placeholder="Example: SR-7K4P9"
-            maxlength="9"
+            maxlength="8"
           >
 
           <button
@@ -185,6 +185,13 @@
           data-tab="share"
         >
           📍 Share
+        </button>
+
+        <button
+          class="tab"
+          data-tab="file"
+        >
+          📎 File
         </button>
 
       </div>
@@ -289,7 +296,8 @@
       >
 
         <div class="muted">
-          Internet voice call between Safe Route users Do Not close this page or reload.
+          Internet voice call between Safe Route users.
+          Do not close this page or reload.
         </div>
 
 
@@ -351,6 +359,82 @@
         <div
           id="shareStatus"
           class="small"
+        ></div>
+
+      </div>
+
+
+      <!-- SHARE FILE -->
+
+      <div
+        id="filePanel"
+        class="panel hidden"
+      >
+
+        <div class="muted">
+          Share a file with the connected Safe Route user.
+        </div>
+
+
+        <!-- FILE PICKER -->
+
+        <label
+          for="fileInput"
+          class="secondary full"
+          style="
+            display:block;
+            text-align:center;
+            margin-top:12px;
+            cursor:pointer;
+          "
+        >
+          📎 Choose File
+        </label>
+
+
+        <input
+          id="fileInput"
+          type="file"
+          style="display:none"
+        >
+
+
+        <!-- SELECTED FILE -->
+
+        <div
+          id="fileInfo"
+          class="small"
+          style="
+            margin-top:10px;
+            padding:10px;
+            background:#091423;
+            border:1px solid var(--line);
+            border-radius:10px;
+            min-height:40px;
+          "
+        >
+          No file selected.
+        </div>
+
+
+        <!-- SEND FILE -->
+
+        <button
+          id="sendFile"
+          class="primary full"
+          style="margin-top:10px"
+          disabled
+        >
+          📤 Send File
+        </button>
+
+
+        <!-- FILE STATUS -->
+
+        <div
+          id="fileStatus"
+          class="small"
+          style="margin-top:8px"
         ></div>
 
       </div>
@@ -518,9 +602,9 @@
   src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 ></script>
 
-<script src="./js/config.js?v=5"></script>
+<script src="./js/config.js?v=6"></script>
 
-<script src="./js/app.js?v=5"></script>
+<script src="./js/app.js?v=6"></script>
 
 </body>
 </html>
