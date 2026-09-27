@@ -2054,6 +2054,218 @@ if ($("sendVoice")) {
 
 }
 
+/* =========================
+   SHARE FILE
+========================= */
+
+$("shareFile").onclick =
+  () => {
+
+    if (!friend) {
+
+      alert(
+        "Connect to a user first."
+      );
+
+      return;
+    }
+
+    $("fileInput").click();
+
+  };
+
+
+$("fileInput").onchange =
+  async () => {
+
+    const file =
+      $("fileInput").files[0];
+
+    if (!file)
+      return;
+
+
+    if (!friend) {
+
+      alert(
+        "Connect to a user first."
+      );
+
+      $("fileInput").value = "";
+
+      return;
+
+    }
+
+
+    /*
+      Maximum file size:
+      25 MB
+    */
+
+    const maxSize =
+      25 * 1024 * 1024;
+
+
+    if (
+      file.size >
+      maxSize
+    ) {
+
+      alert(
+        "File is too large. Maximum size is 25 MB."
+      );
+
+      $("fileInput").value = "";
+
+      return;
+
+    }
+
+
+    $("connectStatus").textContent =
+      "Uploading " +
+      file.name +
+      "...";
+
+
+    try {
+
+      /*
+        Keep the original filename,
+        but put it inside the sender's
+        private folder.
+      */
+
+      const safeName =
+        file.name
+          .replace(
+            /[^a-zA-Z0-9._-]/g,
+            "_"
+          );
+
+
+      const filePath =
+        myUserId +
+        "/" +
+        crypto.randomUUID() +
+        "-" +
+        safeName;
+
+
+      /*
+        Upload file
+      */
+
+      const upload =
+        await supabaseClient
+          .storage
+          .from("shared-files")
+          .upload(
+            filePath,
+            file,
+            {
+              contentType:
+                file.type ||
+                "application/octet-stream",
+
+              upsert:
+                false
+            }
+          );
+
+
+      if (upload.error) {
+
+        console.error(
+          "FILE UPLOAD ERROR:",
+          upload.error
+        );
+
+
+        $("connectStatus").textContent =
+          "File upload error: " +
+          upload.error.message;
+
+        return;
+
+      }
+
+
+      /*
+        Save file information
+        in safe_messages.
+      */
+
+      const {
+        error
+      } =
+        await supabaseClient
+          .from("safe_messages")
+          .insert({
+
+            sender_id:
+              myUserId,
+
+            receiver_id:
+              friend.id,
+
+            message_type:
+              "file",
+
+            content:
+              file.name,
+
+            media_path:
+              filePath
+
+          });
+
+
+      if (error) {
+
+        console.error(
+          "FILE MESSAGE ERROR:",
+          error
+        );
+
+
+        $("connectStatus").textContent =
+          "File message error: " +
+          error.message;
+
+        return;
+
+      }
+
+
+      $("fileInput").value =
+        "";
+
+
+      $("connectStatus").textContent =
+        "✓ File shared";
+
+
+      await loadMessages();
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "FILE SHARE ERROR:",
+        error
+      );
+
+
+      $("connectStatus").textContent =
+        "File error: " +
+        error.message;
+
+    }
+
+  };
 
 /* =========================================================
    VOICE CALL
