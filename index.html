@@ -1,778 +1,568 @@
-<!DOCTYPE html><html lang="en">
-<head>
-  <meta charset="UTF-8">  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <meta name="theme-color" content="#07111f">  <title>Safe Route</title>  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  >  <link
-    rel="stylesheet"
-    href="./css/style.css?v=10"
-  >
-</head><body><!-- =====================================================
-     HOME HEADER
-===================================================== --><header class="topbar">  <div class="brand"><div class="eyebrow">
-  NEW MODERN MISSION
-</div>
 
-<h1>Safe Route</h1>
 
-<p>
-  Stay connected • Stay safe
+<!DOCTYPE html>  <html lang="en">  
+<head>  
+  <meta charset="UTF-8">  <meta
+name="viewport"
+content="width=device-width, initial-scale=1.0"
+
+> 
+
+<meta
+name="theme-color"
+content="#07111f"
+
+> 
+
+  <title>SOS Line</title>    <link  
+    rel="stylesheet"  
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"  
+  >    <link  
+    rel="stylesheet"  
+    href="./css/style.css?v=6"  
+  >  
+</head>  <body>  <header class="topbar">    <div>  
+    <div class="eyebrow">  
+      NEW MODERN MISSION  
+    </div>  <h1>  
+  Safe Route  
+</h1>  
+
+<p>  
+  No-Sim Requirement: Chat • Call • Maps • Route Advice  
 </p>
 
-  </div><button
+  </div>  <button
 id="locateBtn"
-class="top-location"
+class="primary"
 
-«»
+> 
 
-📍 Locate
+📍 Locate me
 
-  </button></header><main class="app-shell"><!-- =====================================================
-     HOME SCREEN
-===================================================== --><section
-  id="homeScreen"
-  class="screen active-screen"
->  <!-- SAFE ID -->  <div class="identity-card"><div class="identity-label">
-  YOUR SAFE ROUTE ID
+  </button>  </header>  <main class="app">    <!-- MAP -->    <section class="map-wrap">  <div id="map"></div>  
+
+<div  
+  id="mapStatus"  
+  class="map-status"  
+>  
+  Getting your location...  
 </div>
 
-<div
-  id="mySafeId"
-  class="safe-id"
->
-  Creating...
-</div>
+  </section>    <!-- RIGHT SIDE -->    <aside class="side">  <!-- COMMUNICATION -->  
 
-<button
-  id="copyId"
-  class="secondary"
->
-  📋 Copy my ID
-</button>
+<section class="card">  
 
-<div
-  id="connection"
-  class="connection-badge badge"
->
-  Offline
-</div>
+  <div class="title-row">  
 
-  </div>  <!-- CONNECT -->  <div class="connect-card"><div class="section-label">
-  CONNECT WITH SOMEONE
-</div>
+    <h2>  
+      💬 Communication  
+    </h2>  
 
-<div class="connect-row">
+    <span  
+      id="connection"  
+      class="badge"  
+    >  
+      Offline  
+    </span>  
 
-  <input
-    id="friendId"
-    placeholder="Enter Safe Route ID"
-    maxlength="8"
-  >
+  </div>  
 
-  <button
-    id="connectBtn"
-    class="primary"
-  >
-    Connect
-  </button>
 
-</div>
+  <!-- SAFE ROUTE ID -->  
 
-<div
-  id="connectStatus"
-  class="small"
-></div>
+  <div class="safe-id-box">  
 
-  </div>  <!-- APP MENU -->  <div class="menu-heading"><span>SAFE ROUTE</span>
+    <div class="small">  
+      YOUR SAFE ROUTE ID  
+    </div>  
 
-<small>
-  Choose an option
-</small>
+    <div  
+      id="mySafeId"  
+      class="safe-id"  
+    >  
+      Creating...  
+    </div>  
 
-  </div>  <div class="app-menu"><!-- CHAT -->
+    <button  
+      id="copyId"  
+      class="secondary full"  
+    >  
+      📋 Copy my ID  
+    </button>  
 
-<button
-  class="app-icon"
-  data-screen="chatScreen"
->
+  </div>  
 
-  <div class="app-icon-symbol">
-    💬
-  </div>
 
-  <span>
-    Chat
-  </span>
+  <!-- CONNECT -->  
 
-  <small>
-    Messages
-  </small>
+  <div class="connect-box">  
 
-</button>
+    <div class="small">  
+      TYPE OTHER'S USER ID BELOW  
+    </div>  
 
+    <div class="row">  
 
-<!-- VOICE MESSAGE -->
+      <input  
+        id="friendId"  
+        placeholder="Example: SR-7K4P9"  
+        maxlength="8"  
+      >  
 
-<button
-  class="app-icon"
-  data-screen="voiceScreen"
->
+      <button  
+        id="connectBtn"  
+        class="primary"  
+      >  
+        Connect  
+      </button>  
 
-  <div class="app-icon-symbol">
-    🎙️
-  </div>
+    </div>  
 
-  <span>
-    Voice
-  </span>
+    <div  
+      id="connectStatus"  
+      class="small"  
+    ></div>  
 
-  <small>
-    Voice message
-  </small>
+  </div>  
 
-</button>
 
+  <!-- COMMUNICATION TABS -->  
 
-<!-- CALL -->
+  <div class="tabs">  
 
-<button
-  class="app-icon"
-  data-screen="callScreen"
->
+    <button  
+      class="tab active"  
+      data-tab="chat"  
+    >  
+      💬 Chat  
+    </button>  
 
-  <div class="app-icon-symbol">
-    📞
-  </div>
+    <button  
+      class="tab"  
+      data-tab="voice"  
+    >  
+      🎙️ Voice  
+    </button>  
 
-  <span>
-    Call
-  </span>
+    <button  
+      class="tab"  
+      data-tab="call"  
+    >  
+      📞 Call  
+    </button>  
 
-  <small>
-    Voice call
-  </small>
+    <button  
+      class="tab"  
+      data-tab="share"  
+    >  
+      📍 Share  
+    </button>  
 
-</button>
+    <button  
+      class="tab"  
+      data-tab="file"  
+    >  
+      📎 File  
+    </button>  
 
+  </div>  
 
-<!-- LOCATION -->
 
-<button
-  class="app-icon"
-  data-screen="locationScreen"
->
+  <!-- CHAT -->  
 
-  <div class="app-icon-symbol">
-    📍
-  </div>
+  <div  
+    id="chatPanel"  
+    class="panel"  
+  >  
 
-  <span>
-    Location
-  </span>
+    <div  
+      id="chatName"  
+      class="small blue"  
+    >  
+      No user connected  
+    </div>  
 
-  <small>
-    Share location
-  </small>
 
-</button>
+    <div  
+      id="messages"  
+      class="messages"  
+    >  
 
+      <div class="muted">  
+        Connect to another Safe Route ID to start chatting.  
+      </div>  
 
-<!-- FILE -->
+    </div>  
 
-<button
-  class="app-icon"
-  data-screen="fileScreen"
->
 
-  <div class="app-icon-symbol">
-    📎
-  </div>
+    <div class="row">  
 
-  <span>
-    File
-  </span>
+      <input  
+        id="message"  
+        placeholder="Type a message..."  
+      >  
 
-  <small>
-    Share files
-  </small>
-
-</button>
-
-
-<!-- EXPLORE -->
-
-<button
-  class="app-icon explore-icon"
-  data-screen="exploreScreen"
->
-
-  <div class="app-icon-symbol">
-    🗺️
-  </div>
-
-  <span>
-    Explore
-  </span>
-
-  <small>
-    Map • Route • Nearby
-  </small>
-
-</button>
-
-  </div>  <!-- EMERGENCY --><button
-class="emergency-launch"
-data-screen="emergencyScreen"
-
-«»
-
-<span class="emergency-symbol">
-  🚨
-</span>
-
-<span>
-  <b>Emergency</b>
-  <small>
-    Police • Ambulance • Fire
-  </small>
-</span>
-
-<span class="arrow">
-  ›
-</span>
-
-  </button></section><!-- =====================================================
-     CHAT SCREEN
-===================================================== --><section
-  id="chatScreen"
-  class="screen feature-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
-
-<div>
-
-  <h2>
-    💬 Chat
-  </h2>
-
-  <div
-    id="chatName"
-    class="small blue"
-  >
-    No user connected
-  </div>
-
-</div>
-
-  </div>  <div
-    id="messages"
-    class="messages"
-  ><div class="muted">
-  Connect to another Safe Route ID to start chatting.
-</div>
-
-  </div>  <div class="message-compose"><input
-  id="message"
-  placeholder="Type a message..."
->
-
-<button
-  id="send"
-  class="primary"
->
-  Send
-</button>
-
-  </div></section><!-- =====================================================
-     VOICE MESSAGE SCREEN
-===================================================== --><section
-  id="voiceScreen"
-  class="screen feature-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
-
-<div>
-
-  <h2>
-    🎙️ Voice Message
-  </h2>
-
-  <div class="small">
-    Record and send a voice message.
-  </div>
-
-</div>
-
-  </div>  <div class="feature-content"><div class="feature-hero-icon">
-  🎙️
-</div>
-
-<div
-  id="timer"
-  class="record-timer"
->
-  00:00
-</div>
-
-<button
-  id="record"
-  class="record"
->
-  🎙️ Start recording
-</button>
-
-
-<audio
-  id="preview"
-  controls
-  class="audio hidden"
-></audio>
-
-
-<button
-  id="sendVoice"
-  class="secondary full hidden"
->
-  Send voice message
-</button>
-
-  </div></section><!-- =====================================================
-     CALL SCREEN
-===================================================== --><section
-  id="callScreen"
-  class="screen feature-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
-
-<div>
-
-  <h2>
-    📞 Voice Call
-  </h2>
-
-  <div class="small">
-    Internet voice call
-  </div>
-
-</div>
-
-  </div>  <div class="feature-content"><div class="feature-hero-icon">
-  📞
-</div>
-
-<div
-  id="callStatus"
-  class="call-status"
->
-  No active call
-</div>
-
-
-<div class="call-actions">
-
-  <button
-    id="call"
-    class="primary"
-  >
-    📞 Call
-  </button>
-
-  <button
-    id="hangup"
-    class="danger"
-  >
-    End Call
-  </button>
-
-</div>
-
-
-<audio
-  id="remoteAudio"
-  autoplay
-></audio>
-
-  </div></section><!-- =====================================================
-     LOCATION SCREEN
-===================================================== --><section
-  id="locationScreen"
-  class="screen feature-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
-
-<div>
-
-  <h2>
-    📍 Current Location
-  </h2>
-
-  <div class="small">
-    Share your current GPS position.
-  </div>
-
-</div>
-
-  </div>  <div class="feature-content"><div class="feature-hero-icon">
-  📍
-</div>
-
-<div
-  id="locationStatus"
-  class="status-box"
->
-  Location not shared yet.
-</div>
-
-
-<button
-  id="shareLocation"
-  class="primary full"
->
-  📍 Share my current location
-</button>
-
-
-<button
-  id="locateFromPanel"
-  class="secondary full"
->
-  Locate me
-</button>
-
-
-<div
-  id="shareStatus"
-  class="small"
-></div>
-
-  </div></section><!-- =====================================================
-     FILE SCREEN
-===================================================== --><section
-  id="fileScreen"
-  class="screen feature-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
-
-<div>
-
-  <h2>
-    📎 Share File
-  </h2>
-
-  <div class="small">
-    Share a file with your connected user.
-  </div>
-
-</div>
-
-  </div>  <div class="feature-content"><div class="feature-hero-icon">
-  📎
-</div>
-
-
-<label
-  for="fileInput"
-  class="file-picker"
->
-  📎 Choose File
-</label>
-
-
-<input
-  id="fileInput"
-  type="file"
->
-
-
-<div
-  id="fileInfo"
-  class="file-info"
->
-  No file selected.
-</div>
-
-
-<button
-  id="sendFile"
-  class="primary full"
-  disabled
->
-  📤 Send File
-</button>
-
-
-<div
-  id="fileStatus"
-  class="small"
-></div>
-
-  </div></section><!-- =====================================================
-     EXPLORE SCREEN
-     MAP + SEARCH + ROUTE + NEARBY
-===================================================== --><section
-  id="exploreScreen"
-  class="screen explore-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
-
-<div>
-
-  <h2>
-    🗺️ Explore
-  </h2>
-
-  <div class="small">
-    Map • Search • Route • Nearby
-  </div>
-
-</div>
-
-  </div>  <!-- SEARCH -->  <div class="map-search"><input
-  id="destination"
-  placeholder="Search destination..."
->
-
-<button
-  id="route"
-  class="primary"
->
-  Search
-</button>
-
-  </div>  <!-- MAP -->  <div class="map-container"><div id="map"></div>
-
-<div
-  id="mapStatus"
-  class="map-status"
->
-  Getting your location...
-</div>
-
-  </div>  <!-- MAP ACTIONS -->  <div class="map-actions"><button
-  id="locateMap"
-  class="map-action"
->
-
-  <span>📍</span>
-
-  <small>
-    My Location
-  </small>
-
-</button>
-
-
-<button
-  id="routeMap"
-  class="map-action"
->
-
-  <span>🧭</span>
-
-  <small>
-    Route
-  </small>
-
-</button>
-
-
-<button
-  id="nearbyMap"
-  class="map-action"
->
-
-  <span>📍</span>
-
-  <small>
-    Nearby
-  </small>
-
-</button>
-
-  </div>  <!-- ROUTE INFO -->  <div class="explore-card"><div class="explore-title">
-
-  <b>
-    🧭 Route Advisory
-  </b>
-
-  <span
-    id="routeState"
-    class="badge"
-  >
-    Waiting
-  </span>
-
-</div>
+      <button  
+        id="send"  
+        class="primary"  
+      >  
+        Send  
+      </button>  
 
+    </div>  
 
-<div
-  id="routeInfo"
-  class="route-info muted"
->
-  Search for a destination to plan your route.
-</div>
+  </div>  
 
-  </div>  <!-- NEARBY -->  <div
-    id="nearbySection"
-    class="explore-card"
-  ><div class="explore-title">
 
-  <b>
-    📍 Nearby
-  </b>
+  <!-- VOICE MESSAGE -->  
 
-  <button
-    id="refresh"
-    class="icon"
-  >
-    ↻
-  </button>
+  <div  
+    id="voicePanel"  
+    class="panel hidden"  
+  >  
 
-</div>
+    <div class="muted">  
+      Record a voice message and send it to the connected user.  
+    </div>  
 
 
-<div class="nearby">
+    <div class="record-row">  
 
-  <button data-kind="metro">
-    🚇
-    <span>Metro</span>
-  </button>
+      <button  
+        id="record"  
+        class="record"  
+      >  
+        🎙️ Start recording  
+      </button>  
 
-  <button data-kind="bus">
-    🚌
-    <span>Bus</span>
-  </button>
+      <span id="timer">  
+        00:00  
+      </span>  
 
-  <button data-kind="fuel">
-    ⛽
-    <span>Fuel</span>
-  </button>
+    </div>  
 
-  <button data-kind="atm">
-    🏧
-    <span>ATM</span>
-  </button>
 
-</div>
+    <audio  
+      id="preview"  
+      controls  
+      class="audio hidden"  
+    ></audio>  
 
 
-<div
-  id="nearbyResults"
-  class="results muted"
->
-  Choose a nearby category.
-</div>
+    <button  
+      id="sendVoice"  
+      class="secondary full hidden"  
+    >  
+      Send voice message  
+    </button>  
 
-  </div></section><!-- =====================================================
-     EMERGENCY SCREEN
-===================================================== --><section
-  id="emergencyScreen"
-  class="screen feature-screen hidden"
->  <div class="feature-header"><button
-  class="back-btn"
-  data-back
->
-  ←
-</button>
+  </div>  
 
-<div>
 
-  <h2>
-    🚨 Emergency
-  </h2>
+  <!-- CALL -->  
 
-  <div class="small">
-    Emergency assistance
-  </div>
+  <div  
+    id="callPanel"  
+    class="panel hidden"  
+  >  
 
-</div>
+    <div class="muted">  
+      Internet voice call between Safe Route users.  
+      Do not close this page or reload.  
+    </div>  
 
-  </div>  <div class="emergency-large"><a href="tel:112">
 
-  <span>🚓</span>
+    <div  
+      id="callStatus"  
+      class="call-status"  
+    >  
+      No active call  
+    </div>  
 
-  <div>
-    <b>Police</b>
-    <small>100 / 112</small>
-  </div>
 
-  <strong>›</strong>
+    <div class="row">  
 
-</a>
+      <button  
+        id="call"  
+        class="primary"  
+      >  
+        📞 Call  
+      </button>  
 
+      <button  
+        id="hangup"  
+        class="danger"  
+      >  
+        End  
+      </button>  
 
-<a href="tel:108">
+    </div>  
 
-  <span>🚑</span>
 
-  <div>
-    <b>Ambulance</b>
-    <small>108</small>
-  </div>
+    <audio  
+      id="remoteAudio"  
+      autoplay  
+    ></audio>  
 
-  <strong>›</strong>
+  </div>  
 
-</a>
 
+  <!-- SHARE LOCATION -->  
 
-<a href="tel:101">
+  <div  
+    id="sharePanel"  
+    class="panel hidden"  
+  >  
 
-  <span>🔥</span>
+    <div class="muted">  
+      Send your current GPS position to the connected user.  
+    </div>  
 
-  <div>
-    <b>Fire</b>
-    <small>101</small>
-  </div>
 
-  <strong>›</strong>
+    <button  
+      id="shareLocation"  
+      class="primary full"  
+    >  
+      📍 Share my location  
+    </button>  
 
-</a>
 
+    <div  
+      id="shareStatus"  
+      class="small"  
+    ></div>  
 
-<a href="tel:112">
+  </div>  
 
-  <span>🆘</span>
 
-  <div>
-    <b>Emergency</b>
-    <small>112</small>
-  </div>
+  <!-- SHARE FILE -->  
 
-  <strong>›</strong>
+  <div  
+    id="filePanel"  
+    class="panel hidden"  
+  >  
 
-</a>
+    <div class="muted">  
+      Share a file with the connected Safe Route user.  
+    </div>  
 
-  </div></section></main><footer>
-  Safe Route • Phase 1 • Built & Developed by Murali Manohar
-</footer><!-- =====================================================
-     SCRIPTS
-===================================================== --><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-></script><script src="./js/config.js?v=10"></script><script src="./js/app.js?v=10"></script></body>
-</html>
+
+    <!-- FILE PICKER -->  
+
+    <label  
+      for="fileInput"  
+      class="secondary full"  
+      style="  
+        display:block;  
+        text-align:center;  
+        margin-top:12px;  
+        cursor:pointer;  
+      "  
+    >  
+      📎 Choose File  
+    </label>  
+
+
+    <input  
+      id="fileInput"  
+      type="file"  
+      style="display:none"  
+    >  
+
+
+    <!-- SELECTED FILE -->  
+
+    <div  
+      id="fileInfo"  
+      class="small"  
+      style="  
+        margin-top:10px;  
+        padding:10px;  
+        background:#091423;  
+        border:1px solid var(--line);  
+        border-radius:10px;  
+        min-height:40px;  
+      "  
+    >  
+      No file selected.  
+    </div>  
+
+
+    <!-- SEND FILE -->  
+
+    <button  
+      id="sendFile"  
+      class="primary full"  
+      style="margin-top:10px"  
+      disabled  
+    >  
+      📤 Send File  
+    </button>  
+
+
+    <!-- FILE STATUS -->  
+
+    <div  
+      id="fileStatus"  
+      class="small"  
+      style="margin-top:8px"  
+    ></div>  
+
+  </div>  
+
+</section>  
+
+
+<!-- ROUTE -->  
+
+<section class="card">  
+
+  <div class="title-row">  
+
+    <h2>  
+      🧭 Route Advisory  
+    </h2>  
+
+    <span  
+      id="routeState"  
+      class="badge"  
+    >  
+      Waiting  
+    </span>  
+
+  </div>  
+
+
+  <div class="row">  
+
+    <input  
+      id="destination"  
+      placeholder="Destination, e.g. Charminar"  
+    >  
+
+    <button  
+      id="route"  
+      class="secondary"  
+    >  
+      Route  
+    </button>  
+
+  </div>  
+
+
+  <div  
+    id="routeInfo"  
+    class="route-info muted"  
+  >  
+    Enter a destination.  
+  </div>  
+
+</section>  
+
+
+<!-- NEARBY -->  
+
+<section class="card">  
+
+  <div class="title-row">  
+
+    <h2>  
+      📍 Nearby  
+    </h2>  
+
+    <button  
+      id="refresh"  
+      class="icon"  
+    >  
+      ↻  
+    </button>  
+
+  </div>  
+
+
+  <div class="nearby">  
+
+    <button data-kind="metro">  
+      🚇  
+      <span>Metro</span>  
+    </button>  
+
+    <button data-kind="bus">  
+      🚌  
+      <span>Bus</span>  
+    </button>  
+
+    <button data-kind="fuel">  
+      ⛽  
+      <span>Fuel</span>  
+    </button>  
+
+    <button data-kind="atm">  
+      🏧  
+      <span>ATM</span>  
+    </button>  
+
+  </div>  
+
+
+  <div  
+    id="nearbyResults"  
+    class="results muted"  
+  >  
+    Choose a category.  
+  </div>  
+
+</section>  
+
+
+<!-- EMERGENCY -->  
+
+<section class="card emergency">  
+
+  <h2>  
+    🚨 Emergency  
+  </h2>  
+
+
+  <div class="emergency-grid">  
+
+    <a href="tel:112">  
+      🚓  
+      <b>Police</b>  
+      <small>100</small>  
+    </a>  
+
+
+    <a href="tel:108">  
+      🚑  
+      <b>Ambulance</b>  
+      <small>108</small>  
+    </a>  
+
+
+    <a href="tel:101">  
+      🔥  
+      <b>Fire</b>  
+      <small>101</small>  
+    </a>  
+
+
+    <a href="tel:112">  
+      🆘  
+      <b>Emergency</b>  
+      <small>112</small>  
+    </a>  
+
+  </div>  
+
+</section>
+
+  </aside>  </main>  <footer>  
+  SOS • Phase 1 Built & Developed by Murali Manohar.  
+</footer>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  <script  
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"  
+></script>  <script src="./js/config.js?v=6"></script>  <script src="./js/app.js?v=6"></script>  </body>  
+</html>  
 
 
