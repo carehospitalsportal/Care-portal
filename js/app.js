@@ -2,15 +2,19 @@
    SAFE ROUTE - PHASE 1
    FULL COMMUNICATION + MAP + GPS + ROUTE
 
-   UPDATED FILE SHARING:
-   - Private shared-files bucket
-   - Unique file paths
-   - Signed URLs for sender + receiver
-   - Image / video / audio preview
-   - Open / Download link
+   UPDATED:
+   - NO 2-second chat polling
+   - Stable chat scrolling
+   - Supabase Realtime message updates
    - Prevent duplicate messages
-   - Prevent duplicate uploads
-   - Better Storage error handling
+   - Private shared-files bucket
+   - Signed URLs for files
+   - Image / video / audio preview
+   - Voice messages
+   - Voice calls
+   - GPS / location sharing
+   - Route advisory
+   - Nearby services
 ========================================================= */
 
 
@@ -27,6 +31,7 @@ const SUPABASE_READY =
   !CONFIG.SUPABASE_URL.includes("YOUR_") &&
   !CONFIG.SUPABASE_ANON_KEY.includes("YOUR_");
 
+
 const supabaseClient =
   SUPABASE_READY
     ? window.supabase.createClient(
@@ -40,14 +45,18 @@ const supabaseClient =
    HELPERS
 ========================================================= */
 
-const $ = id =>
-  document.getElementById(id);
+const $ =
+  id =>
+    document.getElementById(id);
 
 
 function status(text) {
 
   if ($("mapStatus")) {
-    $("mapStatus").textContent = text;
+
+    $("mapStatus").textContent =
+      text;
+
   }
 
 }
@@ -80,7 +89,9 @@ function generateSafeId() {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-  let result = "SR-";
+  let result =
+    "SR-";
+
 
   for (
     let i = 0;
@@ -98,6 +109,7 @@ function generateSafeId() {
 
   }
 
+
   return result;
 
 }
@@ -113,6 +125,7 @@ if (!mySafeId) {
 
   mySafeId =
     generateSafeId();
+
 
   localStorage.setItem(
     "safe_route_id",
@@ -134,51 +147,147 @@ if ($("mySafeId")) {
    USER STATE
 ========================================================= */
 
-let myUserId = null;
+let myUserId =
+  null;
 
-let friend = null;
+let friend =
+  null;
 
-let myPosition = null;
+let myPosition =
+  null;
 
-let userMarker = null;
+let userMarker =
+  null;
 
-let userCircle = null;
+let userCircle =
+  null;
 
-let routeLayer = null;
+let routeLayer =
+  null;
 
-let nearbyLayer = null;
+let nearbyLayer =
+  null;
 
-let messageChannel = null;
+let messageChannel =
+  null;
 
-let callChannel = null;
+let callChannel =
+  null;
 
-let messagePolling = null;
+let peer =
+  null;
 
-let peer = null;
+let localStream =
+  null;
 
-let localStream = null;
+let recorder =
+  null;
 
-let recorder = null;
+let recordedChunks =
+  [];
 
-let recordedChunks = [];
-
-let voiceBlob = null;
+let voiceBlob =
+  null;
 
 
 /* =========================================================
-   CHAT LOAD CONTROL
+   CHAT STATE
 ========================================================= */
 
-let messageLoadRunning = false;
+let messageLoadRunning =
+  false;
 
-let messageLoadAgain = false;
+let messageLoadAgain =
+  false;
+
+let fileUploadRunning =
+  false;
+
+
+/*
+  Used to know whether the user is
+  currently close to the bottom.
+*/
+
+let chatWasNearBottom =
+  true;
+
+
+/*
+  Prevents the same Realtime INSERT
+  from triggering unnecessary reloads.
+*/
+
+let lastRealtimeMessageId =
+  null;
 
 
 /* =========================================================
-   FILE UPLOAD CONTROL
+   CHAT SCROLL HELPERS
 ========================================================= */
 
-let fileUploadRunning = false;
+function isChatNearBottom() {
+
+  const box =
+    $("messages");
+
+
+  if (!box) {
+    return true;
+  }
+
+
+  const distanceFromBottom =
+    box.scrollHeight -
+    box.scrollTop -
+    box.clientHeight;
+
+
+  return distanceFromBottom <
+    120;
+
+}
+
+
+function scrollChatToBottom(
+  smooth = false
+) {
+
+  const box =
+    $("messages");
+
+
+  if (!box) {
+    return;
+  }
+
+
+  box.scrollTo({
+
+    top:
+      box.scrollHeight,
+
+    behavior:
+      smooth
+        ? "smooth"
+        : "auto"
+
+  });
+
+}
+
+
+/*
+  Remember the user's current
+  scroll position before loading.
+*/
+
+function rememberChatPosition() {
+
+  chatWasNearBottom =
+    isChatNearBottom();
+
+}
 
 
 /* =========================================================
@@ -196,7 +305,8 @@ const map =
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
-    maxZoom: 19,
+    maxZoom:
+      19,
 
     attribution:
       '&copy; OpenStreetMap contributors &middot; Sponsored by <a href="https://tastyandcomfort.github.io/T-C/" target="_blank" rel="noopener">Murali Manohar</a>'
@@ -638,12 +748,6 @@ async function registerSafeId() {
     user.id;
 
 
-  console.log(
-    "CURRENT SUPABASE USER:",
-    myUserId
-  );
-
-
   const {
     data: existingUser,
     error: findError
@@ -737,31 +841,20 @@ async function registerSafeId() {
         }
 
 
-        const retry =
-          await supabaseClient
-            .from("safe_users")
-            .insert({
+        await supabaseClient
+          .from("safe_users")
+          .insert({
 
-              id:
-                myUserId,
+            id:
+              myUserId,
 
-              safe_id:
-                mySafeId,
+            safe_id:
+              mySafeId,
 
-              last_seen:
-                new Date().toISOString()
+            last_seen:
+              new Date().toISOString()
 
-            });
-
-
-        if (retry.error) {
-
-          console.error(
-            "SAFE ID RETRY ERROR:",
-            retry.error
-          );
-
-        }
+          });
 
       }
 
@@ -931,45 +1024,7 @@ async function connectToUser() {
     "✓ Connected";
 
 
-  await loadMessages();
-
-  startMessagePolling();
-
-}
-
-
-/* =========================================================
-   MESSAGE POLLING
-========================================================= */
-
-function startMessagePolling() {
-
-  if (messagePolling) {
-
-    clearInterval(
-      messagePolling
-    );
-
-  }
-
-
-  messagePolling =
-    setInterval(
-      () => {
-
-        if (
-          friend &&
-          supabaseClient &&
-          myUserId
-        ) {
-
-          loadMessages();
-
-        }
-
-      },
-      2000
-    );
+  await loadMessages(true);
 
 }
 
@@ -1065,30 +1120,37 @@ async function sendMessage() {
   }
 
 
-  console.log(
-    "MESSAGE SAVED:",
-    data
-  );
-
-
   input.value =
     "";
 
 
-  await loadMessages();
+  /*
+    Realtime will update the chat.
+    We do NOT need to poll.
+  */
 
+  if ($("connectStatus")) {
 
-  $("connectStatus").textContent =
-    "Message sent";
+    $("connectStatus").textContent =
+      "Message sent";
+
+  }
 
 }
 
 
 /* =========================================================
    LOAD MESSAGES
+   IMPORTANT:
+   - Does NOT automatically scroll every time
+   - Keeps user's current position
+   - Only scrolls if user was already
+     near the bottom
 ========================================================= */
 
-async function loadMessages() {
+async function loadMessages(
+  forceBottom = false
+) {
 
   if (messageLoadRunning) {
 
@@ -1109,6 +1171,14 @@ async function loadMessages() {
     return;
 
   }
+
+
+  rememberChatPosition();
+
+
+  const shouldScrollBottom =
+    forceBottom ||
+    chatWasNearBottom;
 
 
   messageLoadRunning =
@@ -1167,8 +1237,14 @@ async function loadMessages() {
     }
 
 
-    messagesBox.innerHTML =
-      "";
+    /*
+      Build everything in a DocumentFragment
+      first, instead of constantly modifying
+      the visible chat while loading.
+    */
+
+    const fragment =
+      document.createDocumentFragment();
 
 
     if (
@@ -1180,15 +1256,6 @@ async function loadMessages() {
         `<div class="muted">
           No messages yet.
         </div>`;
-
-
-      if ($("connectStatus")) {
-
-        $("connectStatus").textContent =
-          "Messages loaded: 0";
-
-      }
-
 
       return;
 
@@ -1234,19 +1301,88 @@ async function loadMessages() {
     }
 
 
+    /*
+      displayMessage() normally appends
+      directly to #messages.
+
+      Temporarily redirect output to the
+      fragment by using a hidden staging
+      container.
+    */
+
+    const staging =
+      document.createElement("div");
+
+
+    staging.style.display =
+      "none";
+
+
+    document.body.appendChild(
+      staging
+    );
+
+
+    const originalMessages =
+      $("messages");
+
+
+    /*
+      Temporarily replace the messages
+      reference by using a helper function.
+    */
+
     for (
       const message of uniqueMessages
     ) {
 
-      await displayMessage(
+      await displayMessageInto(
+        staging,
         message
       );
 
     }
 
 
-    messagesBox.scrollTop =
-      messagesBox.scrollHeight;
+    /*
+      Replace the chat contents once.
+    */
+
+    messagesBox.innerHTML =
+      "";
+
+
+    while (
+      staging.firstChild
+    ) {
+
+      messagesBox.appendChild(
+        staging.firstChild
+      );
+
+    }
+
+
+    staging.remove();
+
+
+    /*
+      Only scroll when appropriate.
+    */
+
+    if (shouldScrollBottom) {
+
+      requestAnimationFrame(
+        () => {
+
+          scrollChatToBottom(
+            false
+          );
+
+        }
+      );
+
+    }
 
 
     if ($("connectStatus")) {
@@ -1291,7 +1427,9 @@ async function loadMessages() {
 
       setTimeout(
         () => {
+
           loadMessages();
+
         },
         100
       );
@@ -1304,31 +1442,21 @@ async function loadMessages() {
 
 
 /* =========================================================
-   DISPLAY MESSAGE
+   DISPLAY MESSAGE INTO CONTAINER
 ========================================================= */
 
-async function displayMessage(
+async function displayMessageInto(
+  container,
   message
 ) {
 
-  const messagesBox =
-    $("messages");
-
-
-  if (!messagesBox) {
-    return;
-  }
-
-
   /*
-    IMPORTANT:
-    Check message ID BEFORE doing any
-    signed URL request.
+    Duplicate protection.
   */
 
   if (
     message.id &&
-    messagesBox.querySelector(
+    container.querySelector(
       `[data-message-id="${CSS.escape(message.id)}"]`
     )
   ) {
@@ -1456,12 +1584,6 @@ async function displayMessage(
 
       if (error) {
 
-        console.error(
-          "VOICE URL ERROR:",
-          error
-        );
-
-
         const errorText =
           document.createElement("div");
 
@@ -1497,27 +1619,12 @@ async function displayMessage(
           "metadata";
 
 
-        audio.className =
-          "audio";
-
-
         audio.style.width =
           "100%";
 
 
         audio.src =
           data.signedUrl;
-
-
-        audio.onerror =
-          event => {
-
-            console.error(
-              "AUDIO PLAY ERROR:",
-              event
-            );
-
-          };
 
 
         div.appendChild(
@@ -1611,16 +1718,6 @@ async function displayMessage(
     );
 
 
-    /*
-      PRIVATE BUCKET
-
-      We DO NOT use getPublicUrl().
-
-      Instead, createSignedUrl() gives a
-      temporary URL that authenticated
-      users can use.
-    */
-
     if (
       message.media_path &&
       supabaseClient
@@ -1685,14 +1782,6 @@ async function displayMessage(
           "block";
 
 
-        unavailable.style.marginTop =
-          "4px";
-
-
-        unavailable.style.opacity =
-          "0.8";
-
-
         fileInfo.appendChild(
           unavailable
         );
@@ -1736,10 +1825,6 @@ async function displayMessage(
             );
 
 
-        /* =================================================
-           IMAGE PREVIEW
-        ================================================= */
-
         if (imageFile) {
 
           const image =
@@ -1781,26 +1866,12 @@ async function displayMessage(
             "block";
 
 
-          image.onerror =
-            () => {
-
-              console.error(
-                "IMAGE PREVIEW FAILED"
-              );
-
-            };
-
-
           fileInfo.appendChild(
             image
           );
 
         }
 
-
-        /* =================================================
-           VIDEO PREVIEW
-        ================================================= */
 
         else if (videoFile) {
 
@@ -1845,10 +1916,6 @@ async function displayMessage(
         }
 
 
-        /* =================================================
-           AUDIO PREVIEW
-        ================================================= */
-
         else if (audioFile) {
 
           const audio =
@@ -1883,10 +1950,6 @@ async function displayMessage(
 
         }
 
-
-        /* =================================================
-           OPEN / DOWNLOAD
-        ================================================= */
 
         const download =
           document.createElement(
@@ -1930,55 +1993,11 @@ async function displayMessage(
           "underline";
 
 
-        download.style.cursor =
-          "pointer";
-
-
         fileInfo.appendChild(
           download
         );
 
       }
-
-      else {
-
-        const unavailable =
-          document.createElement("small");
-
-
-        unavailable.textContent =
-          "⚠️ File URL could not be created.";
-
-
-        unavailable.style.display =
-          "block";
-
-
-        fileInfo.appendChild(
-          unavailable
-        );
-
-      }
-
-    }
-
-    else {
-
-      const unavailable =
-        document.createElement("small");
-
-
-      unavailable.textContent =
-        "⚠️ File path missing.";
-
-
-      unavailable.style.display =
-        "block";
-
-
-      fileInfo.appendChild(
-        unavailable
-      );
 
     }
 
@@ -2044,23 +2063,7 @@ async function displayMessage(
   );
 
 
-  /*
-    Final duplicate protection.
-  */
-
-  if (
-    message.id &&
-    messagesBox.querySelector(
-      `[data-message-id="${CSS.escape(message.id)}"]`
-    )
-  ) {
-
-    return;
-
-  }
-
-
-  messagesBox.appendChild(
+  container.appendChild(
     div
   );
 
@@ -2069,6 +2072,7 @@ async function displayMessage(
 
 /* =========================================================
    REALTIME MESSAGES
+   NO POLLING
 ========================================================= */
 
 function subscribeMessages() {
@@ -2097,9 +2101,7 @@ function subscribeMessages() {
     supabaseClient
       .channel(
         "messages-" +
-        myUserId +
-        "-" +
-        Date.now()
+        myUserId
       )
       .on(
 
@@ -2125,12 +2127,73 @@ function subscribeMessages() {
 
 
           if (
-            message.receiver_id ===
-              myUserId ||
+            message.receiver_id !==
+              myUserId &&
 
-            message.sender_id ===
+            message.sender_id !==
               myUserId
           ) {
+
+            return;
+
+          }
+
+
+          /*
+            Ignore the same realtime
+            event if Supabase sends it
+            again.
+          */
+
+          if (
+            message.id &&
+            message.id ===
+              lastRealtimeMessageId
+          ) {
+
+            return;
+
+          }
+
+
+          lastRealtimeMessageId =
+            message.id;
+
+
+          /*
+            Only reload when the message
+            belongs to the currently
+            connected conversation.
+          */
+
+          if (
+            friend &&
+            (
+              (
+                message.sender_id ===
+                  friend.id &&
+
+                message.receiver_id ===
+                  myUserId
+              ) ||
+
+              (
+                message.sender_id ===
+                  myUserId &&
+
+                message.receiver_id ===
+                  friend.id
+              )
+            )
+          ) {
+
+            /*
+              If the user is at the bottom,
+              keep them at the bottom.
+
+              If they are reading older
+              messages, do not force-scroll.
+            */
 
             loadMessages();
 
@@ -2234,9 +2297,6 @@ if ($("shareLocation")) {
 
       }
 
-
-      await loadMessages();
-
     };
 
 }
@@ -2254,7 +2314,7 @@ if ($("record")) {
       if (!friend) {
 
         alert(
-          "Connect to a Safe Route user first."
+          "Connect to a user first."
         );
 
         return;
@@ -2488,22 +2548,7 @@ if ($("sendVoice")) {
 
         if (upload.error) {
 
-          console.error(
-            "VOICE UPLOAD ERROR:",
-            upload.error
-          );
-
-
-          if ($("connectStatus")) {
-
-            $("connectStatus").textContent =
-              "Voice upload error: " +
-              upload.error.message;
-
-          }
-
-
-          return;
+          throw upload.error;
 
         }
 
@@ -2532,22 +2577,17 @@ if ($("sendVoice")) {
 
         if (error) {
 
-          console.error(
-            "VOICE MESSAGE ERROR:",
-            error
-          );
+          await supabaseClient
+            .storage
+            .from(
+              "voice-messages"
+            )
+            .remove([
+              filename
+            ]);
 
 
-          if ($("connectStatus")) {
-
-            $("connectStatus").textContent =
-              "Voice message error: " +
-              error.message;
-
-          }
-
-
-          return;
+          throw error;
 
         }
 
@@ -2587,9 +2627,6 @@ if ($("sendVoice")) {
             "✓ Voice sent";
 
         }
-
-
-        await loadMessages();
 
       }
 
@@ -2637,9 +2674,7 @@ if ($("shareFile")) {
 
 
       if (fileUploadRunning) {
-
         return;
-
       }
 
 
@@ -2653,10 +2688,6 @@ if ($("shareFile")) {
 
 }
 
-
-/* =========================================================
-   FILE INPUT
-========================================================= */
 
 if ($("fileInput")) {
 
@@ -2674,10 +2705,6 @@ if ($("fileInput")) {
 
 async function handleFileSelection() {
 
-  /*
-    Get the file only once.
-  */
-
   const input =
     $("fileInput");
 
@@ -2694,11 +2721,6 @@ async function handleFileSelection() {
     return;
   }
 
-
-  /*
-    Prevent another upload while
-    this upload is running.
-  */
 
   if (fileUploadRunning) {
 
@@ -2720,7 +2742,6 @@ async function handleFileSelection() {
     input.value =
       "";
 
-
     return;
 
   }
@@ -2739,15 +2760,10 @@ async function handleFileSelection() {
     input.value =
       "";
 
-
     return;
 
   }
 
-
-  /*
-    Maximum file size: 25 MB.
-  */
 
   const maxSize =
     25 *
@@ -2767,7 +2783,6 @@ async function handleFileSelection() {
 
     input.value =
       "";
-
 
     return;
 
@@ -2796,18 +2811,7 @@ async function handleFileSelection() {
   }
 
 
-  let uploadedPath =
-    null;
-
-
   try {
-
-    /*
-      Clean the original file name.
-
-      This prevents problematic characters
-      in Storage paths.
-    */
 
     const safeName =
       file.name
@@ -2826,15 +2830,6 @@ async function handleFileSelection() {
         );
 
 
-    /*
-      Every upload gets a unique UUID.
-
-      Example:
-
-      USER-ID/
-      UUID-report.pdf
-    */
-
     const filePath =
       myUserId +
       "/" +
@@ -2845,20 +2840,6 @@ async function handleFileSelection() {
         "shared-file"
       );
 
-
-    uploadedPath =
-      filePath;
-
-
-    console.log(
-      "FILE UPLOAD PATH:",
-      filePath
-    );
-
-
-    /* =====================================================
-       UPLOAD
-    ===================================================== */
 
     const upload =
       await supabaseClient
@@ -2887,12 +2868,6 @@ async function handleFileSelection() {
 
     if (upload.error) {
 
-      console.error(
-        "FILE UPLOAD ERROR:",
-        upload.error
-      );
-
-
       throw new Error(
         "Storage upload failed: " +
         upload.error.message
@@ -2900,16 +2875,6 @@ async function handleFileSelection() {
 
     }
 
-
-    console.log(
-      "FILE UPLOAD SUCCESS:",
-      upload.data
-    );
-
-
-    /* =====================================================
-       CREATE MESSAGE RECORD
-    ===================================================== */
 
     const {
       data: messageData,
@@ -2941,19 +2906,6 @@ async function handleFileSelection() {
 
     if (messageError) {
 
-      console.error(
-        "FILE MESSAGE INSERT ERROR:",
-        messageError
-      );
-
-
-      /*
-        Important:
-        If Storage upload succeeded but the
-        database insert failed, remove the
-        orphaned file.
-      */
-
       await supabaseClient
         .storage
         .from(
@@ -2978,10 +2930,6 @@ async function handleFileSelection() {
     );
 
 
-    /*
-      Clear input only after complete success.
-    */
-
     input.value =
       "";
 
@@ -2992,16 +2940,6 @@ async function handleFileSelection() {
         "✓ File shared";
 
     }
-
-
-    /*
-      Load once.
-
-      Realtime may also fire, but
-      loadMessages() prevents overlap.
-    */
-
-    await loadMessages();
 
   }
 
@@ -3042,12 +2980,6 @@ async function handleFileSelection() {
 
     }
 
-
-    /*
-      Make sure the input is reset.
-      This also allows selecting the
-      same file again later.
-    */
 
     if (input) {
 
@@ -3336,11 +3268,11 @@ function subscribeCalls() {
 
       )
       .subscribe(
-        callStatus => {
+        channelStatus => {
 
           console.log(
             "CALL REALTIME:",
-            callStatus
+            channelStatus
           );
 
         }
@@ -4376,3 +4308,4 @@ if ($("refresh")) {
 locate();
 
 registerSafeId();
+
