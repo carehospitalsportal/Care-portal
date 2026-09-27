@@ -1,6 +1,17 @@
 /* =========================================================
    SAFE ROUTE - PHASE 1
    FULL COMMUNICATION + MAP + GPS + ROUTE
+
+   Includes:
+   • Text chat
+   • Voice messages
+   • Voice duration
+   • File sharing
+   • Location sharing
+   • Voice calls
+   • GPS
+   • Route advisory
+   • Nearby search
 ========================================================= */
 
 
@@ -10,6 +21,7 @@
 
 const CONFIG =
   window.SAFE_ROUTE_CONFIG || {};
+
 
 const SUPABASE_READY =
   CONFIG.SUPABASE_URL &&
@@ -39,7 +51,10 @@ const $ =
 function status(text) {
 
   if ($("mapStatus")) {
-    $("mapStatus").textContent = text;
+
+    $("mapStatus").textContent =
+      text;
+
   }
 
 }
@@ -72,7 +87,9 @@ function generateSafeId() {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-  let result = "SR-";
+  let result =
+    "SR-";
+
 
   for (
     let i = 0;
@@ -90,6 +107,7 @@ function generateSafeId() {
 
   }
 
+
   return result;
 
 }
@@ -105,6 +123,7 @@ if (!mySafeId) {
 
   mySafeId =
     generateSafeId();
+
 
   localStorage.setItem(
     "safe_route_id",
@@ -126,35 +145,64 @@ if ($("mySafeId")) {
    USER STATE
 ========================================================= */
 
-let myUserId = null;
+let myUserId =
+  null;
 
-let friend = null;
 
-let myPosition = null;
+let friend =
+  null;
 
-let userMarker = null;
 
-let userCircle = null;
+let myPosition =
+  null;
 
-let routeLayer = null;
 
-let nearbyLayer = null;
+let userMarker =
+  null;
 
-let messageChannel = null;
 
-let callChannel = null;
+let userCircle =
+  null;
 
-let messagePolling = null;
 
-let peer = null;
+let routeLayer =
+  null;
 
-let localStream = null;
 
-let recorder = null;
+let nearbyLayer =
+  null;
 
-let recordedChunks = [];
 
-let voiceBlob = null;
+let messageChannel =
+  null;
+
+
+let callChannel =
+  null;
+
+
+let messagePolling =
+  null;
+
+
+let peer =
+  null;
+
+
+let localStream =
+  null;
+
+
+let recorder =
+  null;
+
+
+let recordedChunks =
+  [];
+
+
+let voiceBlob =
+  null;
 
 
 /* =========================================================
@@ -164,7 +212,10 @@ let voiceBlob = null;
 const map =
   L.map("map")
     .setView(
-      [17.385, 78.4867],
+      [
+        17.385,
+        78.4867
+      ],
       12
     );
 
@@ -172,7 +223,8 @@ const map =
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
-    maxZoom: 19,
+    maxZoom:
+      19,
 
     attribution:
       '&copy; OpenStreetMap contributors &middot; Sponsored by <a href="https://tastyandcomfort.github.io/T-C/" target="_blank" rel="noopener">Murali Manohar</a>'
@@ -275,6 +327,7 @@ function locate() {
 
                 fillOpacity:
                   0.08
+
               }
             )
               .addTo(map);
@@ -297,6 +350,7 @@ function locate() {
 
       },
 
+
       error => {
 
         console.error(
@@ -304,11 +358,13 @@ function locate() {
           error
         );
 
+
         status(
           "Location permission denied or unavailable."
         );
 
       },
+
 
       {
         enableHighAccuracy:
@@ -395,6 +451,7 @@ async function startAnonymousSession() {
       "warn"
     );
 
+
     if ($("connectStatus")) {
 
       $("connectStatus").textContent =
@@ -402,19 +459,13 @@ async function startAnonymousSession() {
 
     }
 
+
     return null;
 
   }
 
 
   try {
-
-    /*
-      IMPORTANT:
-
-      First check whether this browser
-      already has a Supabase session.
-    */
 
     const {
       data: sessionData,
@@ -472,11 +523,6 @@ async function startAnonymousSession() {
 
     }
 
-
-    /*
-      No existing session.
-      Create anonymous account.
-    */
 
     const {
       data,
@@ -566,6 +612,7 @@ async function startAnonymousSession() {
 
   }
 
+
   catch (error) {
 
     console.error(
@@ -630,11 +677,6 @@ async function registerSafeId() {
   );
 
 
-  /*
-    Update existing Safe ID belonging
-    to this anonymous user.
-  */
-
   const {
     data: existingUser,
     error: findError
@@ -684,10 +726,6 @@ async function registerSafeId() {
 
   else {
 
-    /*
-      New anonymous user.
-    */
-
     const {
       error: insertError
     } =
@@ -708,11 +746,6 @@ async function registerSafeId() {
 
 
     if (insertError) {
-
-      /*
-        If Safe ID already exists,
-        generate another one.
-      */
 
       if (
         insertError.code ===
@@ -778,10 +811,6 @@ async function registerSafeId() {
 
   }
 
-
-  /*
-    Update last seen.
-  */
 
   await supabaseClient
     .from("safe_users")
@@ -874,7 +903,8 @@ async function connectToUser() {
     "CONNECTING",
     {
       myUserId,
-      safeId: id
+      safeId:
+        id
     }
   );
 
@@ -948,19 +978,10 @@ async function connectToUser() {
     "✓ Connected";
 
 
-  /*
-    Load old messages immediately.
-  */
-
   await loadMessages();
 
 
-  /*
-    Start one polling timer only.
-  */
-
   startMessagePolling();
-
 
 }
 
@@ -1002,7 +1023,7 @@ function startMessagePolling() {
 
 
 /* =========================================================
-   SEND MESSAGE
+   SEND TEXT MESSAGE
 ========================================================= */
 
 if ($("send")) {
@@ -1050,26 +1071,6 @@ async function sendMessage() {
     return;
 
   }
-
-
-  console.log(
-    "========== SEND MESSAGE =========="
-  );
-
-  console.log(
-    "MY USER:",
-    myUserId
-  );
-
-  console.log(
-    "FRIEND USER:",
-    friend.id
-  );
-
-  console.log(
-    "MESSAGE:",
-    message
-  );
 
 
   const {
@@ -1120,12 +1121,9 @@ async function sendMessage() {
   );
 
 
-  input.value = "";
+  input.value =
+    "";
 
-
-  /*
-    Reload immediately.
-  */
 
   await loadMessages();
 
@@ -1159,15 +1157,13 @@ async function loadMessages() {
       "LOADING CHAT:",
       {
         myUserId,
+
         friendId:
           friend.id
+
       }
     );
 
-
-    /*
-      One query for BOTH directions.
-    */
 
     const {
       data,
@@ -1211,18 +1207,9 @@ async function loadMessages() {
     );
 
 
-    /*
-      Clear existing messages
-      before rebuilding the chat.
-    */
-
     $("messages").innerHTML =
       "";
 
-
-    /*
-      No messages yet.
-    */
 
     if (
       !data ||
@@ -1245,17 +1232,10 @@ async function loadMessages() {
 
     /*
       IMPORTANT:
-      displayMessage() is now async
-      because voice messages need a
-      Supabase signed URL.
+      Display messages one by one.
 
-      Messages must be displayed ONE
-      AT A TIME, in order. Running them
-      in parallel (Promise.all) let faster
-      messages (text) jump ahead of slower
-      ones (voice, which needs an extra
-      network round-trip for its signed
-      URL) and land in the wrong position.
+      Voice and file messages need a
+      signed URL from Supabase storage.
     */
 
     for (
@@ -1269,23 +1249,16 @@ async function loadMessages() {
     }
 
 
-    /*
-      Scroll to the newest message.
-    */
-
     $("messages").scrollTop =
       $("messages").scrollHeight;
 
-
-    /*
-      Update status.
-    */
 
     $("connectStatus").textContent =
       "Messages loaded: " +
       data.length;
 
   }
+
 
   catch (error) {
 
@@ -1303,24 +1276,25 @@ async function loadMessages() {
 
 }
 
-    
 
-/* =========================
+/* =========================================================
    DISPLAY MESSAGE
-========================= */
+   TEXT + LOCATION + VOICE + FILE
+========================================================= */
 
-async function displayMessage(message) {
+async function displayMessage(
+  message
+) {
 
   const div =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
-
-  /*
-    Correctly identify sender
-  */
 
   const isMine =
-    message.sender_id === myUserId;
+    message.sender_id ===
+    myUserId;
 
 
   div.className =
@@ -1332,16 +1306,19 @@ async function displayMessage(message) {
     );
 
 
-  /* =========================
+  /* =======================================================
      LOCATION
-  ========================= */
+  ======================================================= */
 
   if (
-    message.message_type === "location"
+    message.message_type ===
+    "location"
   ) {
 
     const link =
-      document.createElement("a");
+      document.createElement(
+        "a"
+      );
 
 
     link.href =
@@ -1352,6 +1329,10 @@ async function displayMessage(message) {
       "_blank";
 
 
+    link.rel =
+      "noopener";
+
+
     link.style.color =
       "white";
 
@@ -1360,21 +1341,26 @@ async function displayMessage(message) {
       "📍 Shared location";
 
 
-    div.appendChild(link);
+    div.appendChild(
+      link
+    );
 
   }
 
 
-  /* =========================
-     VOICE
-  ========================= */
+  /* =======================================================
+     VOICE MESSAGE
+  ======================================================= */
 
   else if (
-    message.message_type === "voice"
+    message.message_type ===
+    "voice"
   ) {
 
     const title =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
 
     title.textContent =
@@ -1389,7 +1375,9 @@ async function displayMessage(message) {
       "6px";
 
 
-    div.appendChild(title);
+    div.appendChild(
+      title
+    );
 
 
     if (
@@ -1398,7 +1386,9 @@ async function displayMessage(message) {
     ) {
 
       const audio =
-        document.createElement("audio");
+        document.createElement(
+          "audio"
+        );
 
 
       audio.controls =
@@ -1417,11 +1407,27 @@ async function displayMessage(message) {
         "100%";
 
 
-      /*
-        Create a temporary signed URL.
-        This works even when the bucket
-        is private.
-      */
+      const durationText =
+        document.createElement(
+          "small"
+        );
+
+
+      durationText.textContent =
+        "Loading duration...";
+
+
+      durationText.style.display =
+        "block";
+
+
+      durationText.style.marginTop =
+        "4px";
+
+
+      durationText.style.opacity =
+        "0.8";
+
 
       const {
         data,
@@ -1429,7 +1435,9 @@ async function displayMessage(message) {
       } =
         await supabaseClient
           .storage
-          .from("voice-messages")
+          .from(
+            "voice-messages"
+          )
           .createSignedUrl(
             message.media_path,
             3600
@@ -1445,7 +1453,9 @@ async function displayMessage(message) {
 
 
         const errorText =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
 
 
         errorText.textContent =
@@ -1466,6 +1476,7 @@ async function displayMessage(message) {
 
       }
 
+
       else if (
         data &&
         data.signedUrl
@@ -1476,18 +1487,59 @@ async function displayMessage(message) {
 
 
         /*
-          Browser reads the actual
-          duration from the audio file.
+          Browser gets the actual
+          audio duration here.
         */
 
         audio.onloadedmetadata =
           () => {
 
-            console.log(
-              "VOICE DURATION:",
-              audio.duration,
-              "seconds"
-            );
+            if (
+              Number.isFinite(
+                audio.duration
+              )
+            ) {
+
+              const totalSeconds =
+                Math.round(
+                  audio.duration
+                );
+
+
+              const minutes =
+                Math.floor(
+                  totalSeconds /
+                  60
+                );
+
+
+              const seconds =
+                totalSeconds %
+                60;
+
+
+              durationText.textContent =
+                "⏱️ " +
+                String(minutes)
+                  .padStart(
+                    2,
+                    "0"
+                  ) +
+                ":" +
+                String(seconds)
+                  .padStart(
+                    2,
+                    "0"
+                  );
+
+
+              console.log(
+                "VOICE DURATION:",
+                audio.duration,
+                "seconds"
+              );
+
+            }
 
           };
 
@@ -1500,11 +1552,20 @@ async function displayMessage(message) {
               event
             );
 
+
+            durationText.textContent =
+              "⚠️ Unable to read audio";
+
           };
 
 
         div.appendChild(
           audio
+        );
+
+
+        div.appendChild(
+          durationText
         );
 
       }
@@ -1514,9 +1575,198 @@ async function displayMessage(message) {
   }
 
 
-  /* =========================
+  /* =======================================================
+     FILE
+  ======================================================= */
+
+  else if (
+    message.message_type ===
+    "file"
+  ) {
+
+    const fileBox =
+      document.createElement(
+        "div"
+      );
+
+
+    fileBox.style.display =
+      "flex";
+
+
+    fileBox.style.alignItems =
+      "center";
+
+
+    fileBox.style.gap =
+      "8px";
+
+
+    const icon =
+      document.createElement(
+        "span"
+      );
+
+
+    icon.textContent =
+      "📎";
+
+
+    icon.style.fontSize =
+      "22px";
+
+
+    fileBox.appendChild(
+      icon
+    );
+
+
+    const fileInfo =
+      document.createElement(
+        "div"
+      );
+
+
+    fileInfo.style.flex =
+      "1";
+
+
+    const fileName =
+      document.createElement(
+        "div"
+      );
+
+
+    fileName.textContent =
+      message.content ||
+      "Shared file";
+
+
+    fileName.style.fontWeight =
+      "700";
+
+
+    fileName.style.wordBreak =
+      "break-word";
+
+
+    fileInfo.appendChild(
+      fileName
+    );
+
+
+    if (
+      message.media_path &&
+      supabaseClient
+    ) {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .storage
+          .from(
+            "shared-files"
+          )
+          .createSignedUrl(
+            message.media_path,
+            3600
+          );
+
+
+      if (error) {
+
+        console.error(
+          "FILE URL ERROR:",
+          error
+        );
+
+
+        const unavailable =
+          document.createElement(
+            "small"
+          );
+
+
+        unavailable.textContent =
+          "⚠️ File unavailable";
+
+
+        fileInfo.appendChild(
+          unavailable
+        );
+
+      }
+
+
+      else if (
+        data &&
+        data.signedUrl
+      ) {
+
+        const download =
+          document.createElement(
+            "a"
+          );
+
+
+        download.href =
+          data.signedUrl;
+
+
+        download.target =
+          "_blank";
+
+
+        download.rel =
+          "noopener";
+
+
+        download.textContent =
+          "⬇️ Open / Download";
+
+
+        download.style.display =
+          "inline-block";
+
+
+        download.style.marginTop =
+          "4px";
+
+
+        download.style.color =
+          "white";
+
+
+        download.style.fontSize =
+          "12px";
+
+
+        fileInfo.appendChild(
+          download
+        );
+
+      }
+
+    }
+
+
+    fileBox.appendChild(
+      fileInfo
+    );
+
+
+    div.appendChild(
+      fileBox
+    );
+
+  }
+
+
+  /* =======================================================
      TEXT
-  ========================= */
+  ======================================================= */
 
   else {
 
@@ -1527,12 +1777,14 @@ async function displayMessage(message) {
   }
 
 
-  /* =========================
+  /* =======================================================
      TIME
-  ========================= */
+  ======================================================= */
 
   const time =
-    document.createElement("time");
+    document.createElement(
+      "time"
+    );
 
 
   const date =
@@ -1550,6 +1802,7 @@ async function displayMessage(message) {
 
         minute:
           "2-digit"
+
       }
     );
 
@@ -1560,12 +1813,15 @@ async function displayMessage(message) {
 
 
   $("messages")
-    .appendChild(div);
+    .appendChild(
+      div
+    );
 
 
   console.log(
     "DISPLAYED MESSAGE:",
     {
+
       id:
         message.id,
 
@@ -1586,13 +1842,11 @@ async function displayMessage(message) {
 
       content:
         message.content
+
     }
   );
 
 }
-
-  
-
 
 
 /* =========================================================
@@ -1640,6 +1894,7 @@ function subscribeMessages() {
 
           table:
             "safe_messages"
+
         },
         payload => {
 
@@ -1808,16 +2063,62 @@ if ($("record")) {
           [];
 
 
+        let mimeType =
+          "";
+
+
+        if (
+          MediaRecorder.isTypeSupported(
+            "audio/webm;codecs=opus"
+          )
+        ) {
+
+          mimeType =
+            "audio/webm;codecs=opus";
+
+        }
+
+        else if (
+          MediaRecorder.isTypeSupported(
+            "audio/webm"
+          )
+        ) {
+
+          mimeType =
+            "audio/webm";
+
+        }
+
+        else if (
+          MediaRecorder.isTypeSupported(
+            "audio/mp4"
+          )
+        ) {
+
+          mimeType =
+            "audio/mp4";
+
+        }
+
+
         recorder =
-          new MediaRecorder(
-            microphone
-          );
+          mimeType
+            ? new MediaRecorder(
+                microphone,
+                {
+                  mimeType
+                }
+              )
+            : new MediaRecorder(
+                microphone
+              );
 
 
         recorder.ondataavailable =
           event => {
 
             if (
+              event.data &&
               event.data.size
             ) {
 
@@ -1842,14 +2143,31 @@ if ($("record")) {
               );
 
 
+            const finalType =
+              recorder.mimeType ||
+              "audio/webm";
+
+
             voiceBlob =
               new Blob(
                 recordedChunks,
                 {
                   type:
-                    recorder.mimeType
+                    finalType
                 }
               );
+
+
+            console.log(
+              "VOICE BLOB:",
+              {
+                size:
+                  voiceBlob.size,
+
+                type:
+                  voiceBlob.type
+              }
+            );
 
 
             if ($("preview")) {
@@ -1894,7 +2212,14 @@ if ($("record")) {
 
       }
 
+
       catch (error) {
+
+        console.error(
+          "MICROPHONE ERROR:",
+          error
+        );
+
 
         alert(
           error.message
@@ -1926,33 +2251,48 @@ if ($("sendVoice")) {
       }
 
 
-      /*
-        Different browsers record in
-        different formats:
-        Chrome/Edge -> audio/webm
-        Safari (iOS/Mac) -> audio/mp4
-        Firefox -> audio/ogg
+      if (!supabaseClient) {
 
-        Use the RECORDING'S OWN mime type
-        for both the file extension and the
-        upload's contentType, instead of
-        hardcoding "webm". Otherwise a Safari
-        recording gets uploaded mislabeled as
-        webm, and playback fails everywhere
-        because the label doesn't match the
-        actual audio bytes.
-      */
+        alert(
+          "Supabase is not connected."
+        );
+
+        return;
+
+      }
+
 
       const recordedMimeType =
         voiceBlob.type ||
         "audio/webm";
 
-      const extension =
-        recordedMimeType.includes("mp4")
-          ? "mp4"
-          : recordedMimeType.includes("ogg")
-            ? "ogg"
-            : "webm";
+
+      let extension =
+        "webm";
+
+
+      if (
+        recordedMimeType.includes(
+          "mp4"
+        )
+      ) {
+
+        extension =
+          "mp4";
+
+      }
+
+      else if (
+        recordedMimeType.includes(
+          "ogg"
+        )
+      ) {
+
+        extension =
+          "ogg";
+
+      }
+
 
       const filename =
         myUserId +
@@ -1960,6 +2300,10 @@ if ($("sendVoice")) {
         crypto.randomUUID() +
         "." +
         extension;
+
+
+      $("connectStatus").textContent =
+        "Uploading voice message...";
 
 
       const upload =
@@ -1973,12 +2317,22 @@ if ($("sendVoice")) {
             voiceBlob,
             {
               contentType:
-                recordedMimeType
+                recordedMimeType,
+
+              upsert:
+                false
+
             }
           );
 
 
       if (upload.error) {
+
+        console.error(
+          "VOICE UPLOAD ERROR:",
+          upload.error
+        );
+
 
         alert(
           upload.error.message
@@ -2013,6 +2367,12 @@ if ($("sendVoice")) {
 
       if (error) {
 
+        console.error(
+          "VOICE MESSAGE ERROR:",
+          error
+        );
+
+
         alert(
           error.message
         );
@@ -2026,7 +2386,16 @@ if ($("sendVoice")) {
         null;
 
 
+      recordedChunks =
+        [];
+
+
       if ($("preview")) {
+
+        $("preview").pause();
+
+        $("preview").src =
+          "";
 
         $("preview")
           .classList
@@ -2048,144 +2417,112 @@ if ($("sendVoice")) {
       }
 
 
+      $("connectStatus").textContent =
+        "✓ Voice message sent";
+
+
       await loadMessages();
 
     };
 
 }
 
-/* =========================
+
+/* =========================================================
    SHARE FILE
-========================= */
+========================================================= */
 
-$("shareFile").onclick =
-  () => {
+/*
+  HTML should contain:
 
-    if (!friend) {
+  <button id="shareFile">
+    📎 Share File
+  </button>
 
-      alert(
-        "Connect to a user first."
-      );
-
-      return;
-    }
-
-    $("fileInput").click();
-
-  };
+  <input
+    id="fileInput"
+    type="file"
+    hidden
+  >
+*/
 
 
-$("fileInput").onchange =
-  async () => {
+if ($("shareFile")) {
 
-    const file =
-      $("fileInput").files[0];
+  $("shareFile").onclick =
+    () => {
 
-    if (!file)
-      return;
+      if (!friend) {
 
+        alert(
+          "Connect to a user first."
+        );
 
-    if (!friend) {
+        return;
 
-      alert(
-        "Connect to a user first."
-      );
-
-      $("fileInput").value = "";
-
-      return;
-
-    }
+      }
 
 
-    /*
-      Maximum file size:
-      25 MB
-    */
+      if (!$("fileInput")) {
 
-    const maxSize =
-      25 * 1024 * 1024;
+        alert(
+          "File input is missing from the HTML."
+        );
 
+        return;
 
-    if (
-      file.size >
-      maxSize
-    ) {
-
-      alert(
-        "File is too large. Maximum size is 25 MB."
-      );
-
-      $("fileInput").value = "";
-
-      return;
-
-    }
+      }
 
 
-    $("connectStatus").textContent =
-      "Uploading " +
-      file.name +
-      "...";
+      $("fileInput").click();
+
+    };
+
+}
 
 
-    try {
+if ($("fileInput")) {
 
-      /*
-        Keep the original filename,
-        but put it inside the sender's
-        private folder.
-      */
+  $("fileInput").onchange =
+    async () => {
 
-      const safeName =
-        file.name
-          .replace(
-            /[^a-zA-Z0-9._-]/g,
-            "_"
-          );
+      const file =
+        $("fileInput").files[0];
 
 
-      const filePath =
-        myUserId +
-        "/" +
-        crypto.randomUUID() +
-        "-" +
-        safeName;
+      if (!file) {
+
+        return;
+
+      }
 
 
-      /*
-        Upload file
-      */
+      if (!friend) {
 
-      const upload =
-        await supabaseClient
-          .storage
-          .from("shared-files")
-          .upload(
-            filePath,
-            file,
-            {
-              contentType:
-                file.type ||
-                "application/octet-stream",
-
-              upsert:
-                false
-            }
-          );
-
-
-      if (upload.error) {
-
-        console.error(
-          "FILE UPLOAD ERROR:",
-          upload.error
+        alert(
+          "Connect to a user first."
         );
 
 
-        $("connectStatus").textContent =
-          "File upload error: " +
-          upload.error.message;
+        $("fileInput").value =
+          "";
+
+
+        return;
+
+      }
+
+
+      if (!supabaseClient) {
+
+        alert(
+          "Supabase is not connected."
+        );
+
+
+        $("fileInput").value =
+          "";
+
 
         return;
 
@@ -2193,79 +2530,192 @@ $("fileInput").onchange =
 
 
       /*
-        Save file information
-        in safe_messages.
+        Maximum file size:
+        25 MB
       */
 
-      const {
-        error
-      } =
-        await supabaseClient
-          .from("safe_messages")
-          .insert({
-
-            sender_id:
-              myUserId,
-
-            receiver_id:
-              friend.id,
-
-            message_type:
-              "file",
-
-            content:
-              file.name,
-
-            media_path:
-              filePath
-
-          });
+      const maxSize =
+        25 *
+        1024 *
+        1024;
 
 
-      if (error) {
+      if (
+        file.size >
+        maxSize
+      ) {
+
+        alert(
+          "File is too large. Maximum size is 25 MB."
+        );
+
+
+        $("fileInput").value =
+          "";
+
+
+        return;
+
+      }
+
+
+      $("connectStatus").textContent =
+        "Uploading " +
+        file.name +
+        "...";
+
+
+      try {
+
+        /*
+          Clean filename.
+        */
+
+        const safeName =
+          file.name
+            .replace(
+              /[^a-zA-Z0-9._-]/g,
+              "_"
+            );
+
+
+        /*
+          Store each user's files
+          inside their own folder.
+        */
+
+        const filePath =
+          myUserId +
+          "/" +
+          crypto.randomUUID() +
+          "-" +
+          safeName;
+
+
+        /*
+          Upload file to:
+          shared-files
+        */
+
+        const upload =
+          await supabaseClient
+            .storage
+            .from(
+              "shared-files"
+            )
+            .upload(
+              filePath,
+              file,
+              {
+
+                contentType:
+                  file.type ||
+                  "application/octet-stream",
+
+                upsert:
+                  false
+
+              }
+            );
+
+
+        if (upload.error) {
+
+          console.error(
+            "FILE UPLOAD ERROR:",
+            upload.error
+          );
+
+
+          $("connectStatus").textContent =
+            "File upload error: " +
+            upload.error.message;
+
+
+          return;
+
+        }
+
+
+        /*
+          Save file information
+          inside safe_messages.
+        */
+
+        const {
+          error
+        } =
+          await supabaseClient
+            .from("safe_messages")
+            .insert({
+
+              sender_id:
+                myUserId,
+
+              receiver_id:
+                friend.id,
+
+              message_type:
+                "file",
+
+              content:
+                file.name,
+
+              media_path:
+                filePath
+
+            });
+
+
+        if (error) {
+
+          console.error(
+            "FILE MESSAGE ERROR:",
+            error
+          );
+
+
+          $("connectStatus").textContent =
+            "File message error: " +
+            error.message;
+
+
+          return;
+
+        }
+
+
+        $("fileInput").value =
+          "";
+
+
+        $("connectStatus").textContent =
+          "✓ File shared";
+
+
+        await loadMessages();
+
+      }
+
+
+      catch (error) {
 
         console.error(
-          "FILE MESSAGE ERROR:",
+          "FILE SHARE ERROR:",
           error
         );
 
 
         $("connectStatus").textContent =
-          "File message error: " +
+          "File error: " +
           error.message;
-
-        return;
 
       }
 
+    };
 
-      $("fileInput").value =
-        "";
+}
 
-
-      $("connectStatus").textContent =
-        "✓ File shared";
-
-
-      await loadMessages();
-
-    }
-
-    catch (error) {
-
-      console.error(
-        "FILE SHARE ERROR:",
-        error
-      );
-
-
-      $("connectStatus").textContent =
-        "File error: " +
-        error.message;
-
-    }
-
-  };
 
 /* =========================================================
    VOICE CALL
@@ -2380,7 +2830,14 @@ async function startCall() {
 
   }
 
+
   catch (error) {
+
+    console.error(
+      "CALL ERROR:",
+      error
+    );
+
 
     $("callStatus").textContent =
       error.message;
@@ -2446,6 +2903,10 @@ async function sendCallSignal(
 }
 
 
+/* =========================================================
+   SUBSCRIBE CALLS
+========================================================= */
+
 function subscribeCalls() {
 
   if (
@@ -2487,6 +2948,7 @@ function subscribeCalls() {
 
           table:
             "safe_call_signals"
+
         },
         async payload => {
 
@@ -2711,6 +3173,7 @@ async function handleCallSignal(
 
     }
 
+
     catch (error) {
 
       console.error(
@@ -2752,6 +3215,7 @@ if ($("hangup")) {
             track =>
               track.stop()
           );
+
 
         localStream =
           null;
@@ -2966,6 +3430,7 @@ if ($("route")) {
           L.geoJSON(
             route.geometry,
             {
+
               style: {
 
                 color:
@@ -2985,7 +3450,10 @@ if ($("route")) {
           routeLayer.getBounds(),
           {
             padding:
-              [25, 25]
+              [
+                25,
+                25
+              ]
           }
         );
 
@@ -3069,11 +3537,13 @@ if ($("route")) {
 
       }
 
+
       catch (error) {
 
         $("routeInfo")
           .textContent =
           error.message;
+
 
         $("routeState")
           .textContent =
@@ -3236,6 +3706,7 @@ async function findNearby(
 
           body:
             query
+
         }
       );
 
@@ -3422,6 +3893,7 @@ async function findNearby(
       );
 
   }
+
 
   catch (error) {
 
