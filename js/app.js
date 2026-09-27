@@ -1,7 +1,12 @@
 /* =========================================================
    SAFE ROUTE - PHASE 1
    FULL COMMUNICATION + MAP + GPS + ROUTE
-   STABLE CHAT + VOICE + FILE SHARING
+   UPDATED:
+   - Prevent duplicate voice messages
+   - Prevent overlapping chat refreshes
+   - File preview/download for sender and receiver
+   - Voice signed URLs
+   - File signed URLs
 ========================================================= */
 
 
@@ -40,8 +45,10 @@ const $ =
 function status(text) {
 
   if ($("mapStatus")) {
+
     $("mapStatus").textContent =
       text;
+
   }
 
 }
@@ -77,6 +84,7 @@ function generateSafeId() {
   let result =
     "SR-";
 
+
   for (
     let i = 0;
     i < 5;
@@ -93,6 +101,7 @@ function generateSafeId() {
 
   }
 
+
   return result;
 
 }
@@ -108,6 +117,7 @@ if (!mySafeId) {
 
   mySafeId =
     generateSafeId();
+
 
   localStorage.setItem(
     "safe_route_id",
@@ -129,49 +139,64 @@ if ($("mySafeId")) {
    USER STATE
 ========================================================= */
 
-let myUserId = null;
+let myUserId =
+  null;
 
-let friend = null;
+let friend =
+  null;
 
-let myPosition = null;
+let myPosition =
+  null;
 
-let userMarker = null;
+let userMarker =
+  null;
 
-let userCircle = null;
+let userCircle =
+  null;
 
-let routeLayer = null;
+let routeLayer =
+  null;
 
-let nearbyLayer = null;
+let nearbyLayer =
+  null;
 
-let messageChannel = null;
+let messageChannel =
+  null;
 
-let callChannel = null;
+let callChannel =
+  null;
 
-let peer = null;
+let messagePolling =
+  null;
 
-let localStream = null;
+let peer =
+  null;
 
-let recorder = null;
+let localStream =
+  null;
 
-let recordedChunks = [];
+let recorder =
+  null;
 
-let voiceBlob = null;
+let recordedChunks =
+  [];
+
+let voiceBlob =
+  null;
 
 
-/*
-  IMPORTANT CHAT STATE
+/* =========================================================
+   CHAT LOAD CONTROL
+   IMPORTANT:
+   Prevents voice messages appearing twice
+   because manual refresh + Realtime can happen
+   at the same time.
+========================================================= */
 
-  We no longer poll every 2 seconds.
+let messageLoadRunning =
+  false;
 
-  This prevents the chat from repeatedly
-  clearing and rebuilding itself while
-  voice audio is loading.
-*/
-
-let displayedMessageIds =
-  new Set();
-
-let loadingMessages =
+let messageLoadAgain =
   false;
 
 
@@ -285,6 +310,7 @@ function locate() {
                 myPosition.lon
               ],
               {
+
                 radius:
                   position.coords.accuracy ||
                   30,
@@ -294,6 +320,7 @@ function locate() {
 
                 fillOpacity:
                   0.08
+
               }
             )
               .addTo(map);
@@ -323,6 +350,7 @@ function locate() {
           error
         );
 
+
         status(
           "Location permission denied or unavailable."
         );
@@ -330,6 +358,7 @@ function locate() {
       },
 
       {
+
         enableHighAccuracy:
           true,
 
@@ -414,12 +443,14 @@ async function startAnonymousSession() {
       "warn"
     );
 
+
     if ($("connectStatus")) {
 
       $("connectStatus").textContent =
         "Supabase client was not created.";
 
     }
+
 
     return null;
 
@@ -859,16 +890,6 @@ async function connectToUser() {
   }
 
 
-  console.log(
-    "CONNECTING",
-    {
-      myUserId,
-      safeId:
-        id
-    }
-  );
-
-
   const {
     data,
     error
@@ -923,941 +944,65 @@ async function connectToUser() {
   };
 
 
-  console.log(
-    "FRIEND:",
-    friend
-  );
+  if ($("chatName")) {
 
+    $("chatName").textContent =
+      "Connected to " +
+      friend.safe_id;
 
-  $("chatName").textContent =
-    "Connected to " +
-    friend.safe_id;
+  }
 
 
   $("connectStatus").textContent =
     "✓ Connected";
 
 
-  /*
-    IMPORTANT:
-    Reset the displayed-message list
-    when changing friend.
-  */
-
-  displayedMessageIds.clear();
-
-
-  /*
-    Load old messages ONCE.
-  */
-
   await loadMessages();
 
-}
 
-
-/* =========================================================
-   LOAD MESSAGES
-   STABLE - NO POLLING
-========================================================= */
-
-async function loadMessages() {
-
-  if (
-    !friend ||
-    !supabaseClient ||
-    !myUserId
-  ) {
-
-    return;
-
-  }
-
-
-  if (loadingMessages) {
-
-    return;
-
-  }
-
-
-  loadingMessages = true;
-
-
-  try {
-
-    console.log(
-      "LOADING CHAT:",
-      {
-        myUserId,
-        friendId:
-          friend.id
-      }
-    );
-
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("safe_messages")
-        .select("*")
-        .or(
-          `and(sender_id.eq.${myUserId},receiver_id.eq.${friend.id}),and(sender_id.eq.${friend.id},receiver_id.eq.${myUserId})`
-        )
-        .order(
-          "created_at",
-          {
-            ascending:
-              true
-          }
-        );
-
-
-    if (error) {
-
-      console.error(
-        "LOAD MESSAGE ERROR:",
-        error
-      );
-
-
-      $("connectStatus").textContent =
-        "Message error: " +
-        error.message;
-
-      return;
-
-    }
-
-
-    const messages =
-      data || [];
-
-
-    const messagesBox =
-      $("messages");
-
-
-    /*
-      Clear only when starting
-      a completely new conversation.
-    */
-
-    messagesBox.innerHTML =
-      "";
-
-
-    displayedMessageIds.clear();
-
-
-    if (
-      messages.length ===
-      0
-    ) {
-
-      messagesBox.innerHTML =
-        `<div class="muted">
-          No messages yet.
-        </div>`;
-
-
-      $("connectStatus").textContent =
-        "Messages loaded: 0";
-
-      return;
-
-    }
-
-
-    /*
-      Display messages sequentially.
-      This keeps text, voice, location
-      and files in their correct order.
-    */
-
-    for (
-      const message of messages
-    ) {
-
-      if (!message.id) {
-
-        continue;
-
-      }
-
-
-      await displayMessage(
-        message
-      );
-
-
-      displayedMessageIds.add(
-        message.id
-      );
-
-    }
-
-
-    /*
-      Initial load goes to bottom.
-    */
-
-    messagesBox.scrollTop =
-      messagesBox.scrollHeight;
-
-
-    $("connectStatus").textContent =
-      "Messages loaded: " +
-      messages.length;
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "LOAD EXCEPTION:",
-      error
-    );
-
-
-    $("connectStatus").textContent =
-      "Message error: " +
-      error.message;
-
-  }
-
-  finally {
-
-    loadingMessages =
-      false;
-
-  }
+  startMessagePolling();
 
 }
 
 
 /* =========================================================
-   DISPLAY MESSAGE
+   MESSAGE POLLING
 ========================================================= */
 
-async function displayMessage(
-  message
-) {
+function startMessagePolling() {
 
-  if (
-    !message ||
-    !message.id
-  ) {
+  if (messagePolling) {
 
-    return;
-
-  }
-
-
-  /*
-    Do not display duplicate messages.
-  */
-
-  if (
-    displayedMessageIds.has(
-      message.id
-    )
-  ) {
-
-    return;
-
-  }
-
-
-  const div =
-    document.createElement(
-      "div"
-    );
-
-
-  const isMine =
-    message.sender_id ===
-    myUserId;
-
-
-  div.className =
-    "bubble " +
-    (
-      isMine
-        ? "me"
-        : "them"
-    );
-
-
-  /* =======================================================
-     LOCATION
-  ======================================================= */
-
-  if (
-    message.message_type ===
-    "location"
-  ) {
-
-    const link =
-      document.createElement(
-        "a"
-      );
-
-
-    link.href =
-      `https://www.openstreetmap.org/?mlat=${message.latitude}&mlon=${message.longitude}`;
-
-
-    link.target =
-      "_blank";
-
-
-    link.rel =
-      "noopener";
-
-
-    link.style.color =
-      "white";
-
-
-    link.textContent =
-      "📍 Shared location";
-
-
-    div.appendChild(
-      link
+    clearInterval(
+      messagePolling
     );
 
   }
 
 
-  /* =======================================================
-     VOICE
-  ======================================================= */
-
-  else if (
-    message.message_type ===
-    "voice"
-  ) {
-
-    const title =
-      document.createElement(
-        "div"
-      );
-
-
-    title.textContent =
-      "🎙️ Voice message";
-
-
-    title.style.fontWeight =
-      "700";
-
-
-    title.style.marginBottom =
-      "6px";
-
-
-    div.appendChild(
-      title
-    );
-
-
-    if (
-      message.media_path &&
-      supabaseClient
-    ) {
-
-      const audio =
-        document.createElement(
-          "audio"
-        );
-
-
-      audio.controls =
-        true;
-
-
-      audio.preload =
-        "metadata";
-
-
-      audio.className =
-        "audio";
-
-
-      audio.style.width =
-        "100%";
-
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .storage
-          .from(
-            "voice-messages"
-          )
-          .createSignedUrl(
-            message.media_path,
-            3600
-          );
-
-
-      if (error) {
-
-        console.error(
-          "VOICE URL ERROR:",
-          error
-        );
-
-
-        const errorText =
-          document.createElement(
-            "div"
-          );
-
-
-        errorText.textContent =
-          "⚠️ Voice unavailable";
-
-
-        errorText.style.fontSize =
-          "11px";
-
-
-        errorText.style.color =
-          "#ff9da8";
-
-
-        div.appendChild(
-          errorText
-        );
-
-      }
-
-      else if (
-        data &&
-        data.signedUrl
-      ) {
-
-        audio.src =
-          data.signedUrl;
-
-
-        audio.onloadedmetadata =
-          () => {
-
-            console.log(
-              "VOICE DURATION:",
-              audio.duration,
-              "seconds"
-            );
-
-          };
-
-
-        audio.onerror =
-          event => {
-
-            console.error(
-              "AUDIO PLAY ERROR:",
-              event
-            );
-
-          };
-
-
-        div.appendChild(
-          audio
-        );
-
-      }
-
-    }
-
-  }
-
-
-  /* =======================================================
-     FILE
-  ======================================================= */
-
-  else if (
-    message.message_type ===
-    "file"
-  ) {
-
-    const fileBox =
-      document.createElement(
-        "div"
-      );
-
-
-    fileBox.style.display =
-      "flex";
-
-
-    fileBox.style.alignItems =
-      "center";
-
-
-    fileBox.style.gap =
-      "8px";
-
-
-    const icon =
-      document.createElement(
-        "span"
-      );
-
-
-    icon.textContent =
-      "📎";
-
-
-    icon.style.fontSize =
-      "22px";
-
-
-    fileBox.appendChild(
-      icon
-    );
-
-
-    const fileInfo =
-      document.createElement(
-        "div"
-      );
-
-
-    fileInfo.style.flex =
-      "1";
-
-
-    const fileName =
-      document.createElement(
-        "div"
-      );
-
-
-    fileName.textContent =
-      message.content ||
-      "Shared file";
-
-
-    fileName.style.fontWeight =
-      "700";
-
-
-    fileName.style.wordBreak =
-      "break-word";
-
-
-    fileInfo.appendChild(
-      fileName
-    );
-
-
-    if (
-      message.media_path &&
-      supabaseClient
-    ) {
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .storage
-          .from(
-            "shared-files"
-          )
-          .createSignedUrl(
-            message.media_path,
-            3600
-          );
-
-
-      if (error) {
-
-        console.error(
-          "FILE URL ERROR:",
-          error
-        );
-
-
-        const unavailable =
-          document.createElement(
-            "small"
-          );
-
-
-        unavailable.textContent =
-          "⚠️ File unavailable";
-
-
-        fileInfo.appendChild(
-          unavailable
-        );
-
-      }
-
-      else if (
-        data &&
-        data.signedUrl
-      ) {
-
-        const download =
-          document.createElement(
-            "a"
-          );
-
-
-        download.href =
-          data.signedUrl;
-
-
-        download.target =
-          "_blank";
-
-
-        download.rel =
-          "noopener";
-
-
-        download.textContent =
-          "⬇️ Open / Download";
-
-
-        download.style.display =
-          "inline-block";
-
-
-        download.style.marginTop =
-          "4px";
-
-
-        download.style.color =
-          "white";
-
-
-        download.style.fontSize =
-          "12px";
-
-
-        fileInfo.appendChild(
-          download
-        );
-
-      }
-
-    }
-
-
-    fileBox.appendChild(
-      fileInfo
-    );
-
-
-    div.appendChild(
-      fileBox
-    );
-
-  }
-
-
-  /* =======================================================
-     TEXT
-  ======================================================= */
-
-  else {
-
-    div.textContent =
-      message.content ||
-      "";
-
-  }
-
-
-  /* =======================================================
-     TIME
-  ======================================================= */
-
-  const time =
-    document.createElement(
-      "time"
-    );
-
-
-  const date =
-    new Date(
-      message.created_at
-    );
-
-
-  time.textContent =
-    date.toLocaleTimeString(
-      [],
-      {
-        hour:
-          "2-digit",
-
-        minute:
-          "2-digit"
-      }
-    );
-
-
-  div.appendChild(
-    time
-  );
-
-
-  $("messages")
-    .appendChild(
-      div
-    );
-
-
-  console.log(
-    "DISPLAYED MESSAGE:",
-    {
-      id:
-        message.id,
-
-      type:
-        message.message_type,
-
-      sender:
-        message.sender_id,
-
-      receiver:
-        message.receiver_id,
-
-      mine:
-        isMine,
-
-      media:
-        message.media_path,
-
-      content:
-        message.content
-    }
-  );
-
-}
-
-
-/* =========================================================
-   REALTIME MESSAGES
-========================================================= */
-
-function subscribeMessages() {
-
-  if (
-    !supabaseClient ||
-    !myUserId
-  ) {
-
-    return;
-
-  }
-
-
-  if (messageChannel) {
-
-    supabaseClient
-      .removeChannel(
-        messageChannel
-      );
-
-  }
-
-
-  messageChannel =
-    supabaseClient
-      .channel(
-        "messages-" +
-        myUserId +
-        "-" +
-        Date.now()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event:
-            "INSERT",
-
-          schema:
-            "public",
-
-          table:
-            "safe_messages"
-        },
-        async payload => {
-
-          console.log(
-            "REALTIME NEW MESSAGE:",
-            payload.new
-          );
-
-
-          const message =
-            payload.new;
-
-
-          /*
-            Ignore unrelated messages.
-          */
-
-          if (
-            message.receiver_id !==
-              myUserId &&
-
-            message.sender_id !==
-              myUserId
-          ) {
-
-            return;
-
-          }
-
-
-          /*
-            Ignore duplicates.
-          */
-
-          if (
-            displayedMessageIds.has(
-              message.id
-            )
-          ) {
-
-            return;
-
-          }
-
-
-          /*
-            Only display messages belonging
-            to the currently connected user.
-          */
-
-          if (
-            !friend ||
-            !(
-              (
-                message.sender_id ===
-                myUserId &&
-
-                message.receiver_id ===
-                friend.id
-              )
-              ||
-              (
-                message.sender_id ===
-                friend.id &&
-
-                message.receiver_id ===
-                myUserId
-              )
-            )
-          ) {
-
-            return;
-
-          }
-
-
-          const messagesBox =
-            $("messages");
-
-
-          /*
-            Check whether user is near bottom.
-          */
-
-          const wasNearBottom =
-            messagesBox.scrollHeight -
-            messagesBox.scrollTop -
-            messagesBox.clientHeight <
-            120;
-
-
-          /*
-            Remove "No messages yet"
-            placeholder.
-          */
-
-          const placeholder =
-            messagesBox.querySelector(
-              ".muted"
-            );
-
-
-          if (
-            placeholder &&
-            placeholder.textContent
-              .includes(
-                "No messages yet"
-              )
-          ) {
-
-            placeholder.remove();
-
-          }
-
-
-          await displayMessage(
-            message
-          );
-
-
-          displayedMessageIds.add(
-            message.id
-          );
-
-
-          /*
-            Only scroll automatically if
-            the user was already near bottom.
-          */
-
-          if (
-            wasNearBottom
-          ) {
-
-            messagesBox.scrollTop =
-              messagesBox.scrollHeight;
-
-          }
-
-
-          $("connectStatus").textContent =
-            "New message";
+  messagePolling =
+    setInterval(
+      () => {
+
+        if (
+          friend &&
+          supabaseClient &&
+          myUserId
+        ) {
+
+          loadMessages();
 
         }
-      )
-      .subscribe(
-        channelStatus => {
 
-          console.log(
-            "MESSAGE REALTIME STATUS:",
-            channelStatus
-          );
-
-        }
-      );
+      },
+      2000
+    );
 
 }
 
 
 /* =========================================================
-   SEND MESSAGE
+   SEND TEXT MESSAGE
 ========================================================= */
 
 if ($("send")) {
@@ -1959,47 +1104,1071 @@ async function sendMessage() {
     "";
 
 
-  /*
-    Display immediately on sender side.
-    Realtime will be ignored as duplicate.
-  */
+  await loadMessages();
+
+
+  $("connectStatus").textContent =
+    "Message sent";
+
+}
+
+
+/* =========================================================
+   LOAD MESSAGES
+   FIXED:
+   - No overlapping loads
+   - No duplicate voice messages
+   - No duplicate file messages
+========================================================= */
+
+async function loadMessages() {
+
+  if (messageLoadRunning) {
+
+    messageLoadAgain =
+      true;
+
+    return;
+
+  }
+
 
   if (
-    data &&
-    data.id
+    !friend ||
+    !supabaseClient ||
+    !myUserId
   ) {
 
-    const wasNearBottom =
-      $("messages").scrollHeight -
-      $("messages").scrollTop -
-      $("messages").clientHeight <
-      120;
+    return;
+
+  }
 
 
-    await displayMessage(
-      data
+  messageLoadRunning =
+    true;
+
+
+  try {
+
+    console.log(
+      "LOADING CHAT:",
+      {
+        myUserId,
+        friendId:
+          friend.id
+      }
     );
 
 
-    displayedMessageIds.add(
-      data.id
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("safe_messages")
+        .select("*")
+        .or(
+          `and(sender_id.eq.${myUserId},receiver_id.eq.${friend.id}),and(sender_id.eq.${friend.id},receiver_id.eq.${myUserId})`
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              true
+          }
+        );
+
+
+    if (error) {
+
+      console.error(
+        "LOAD MESSAGE ERROR:",
+        error
+      );
+
+
+      if ($("connectStatus")) {
+
+        $("connectStatus").textContent =
+          "Message error: " +
+          error.message;
+
+      }
+
+
+      return;
+
+    }
+
+
+    const messagesBox =
+      $("messages");
+
+
+    if (!messagesBox) {
+
+      return;
+
+    }
+
+
+    /*
+      Clear only after successful
+      database response.
+    */
+
+    messagesBox.innerHTML =
+      "";
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      messagesBox.innerHTML =
+        `<div class="muted">
+          No messages yet.
+        </div>`;
+
+
+      if ($("connectStatus")) {
+
+        $("connectStatus").textContent =
+          "Messages loaded: 0";
+
+      }
+
+
+      return;
+
+    }
+
+
+    /*
+      Remove duplicate database rows
+      by message ID.
+    */
+
+    const uniqueMessages =
+      [];
+
+    const seenIds =
+      new Set();
+
+
+    for (
+      const message of data
+    ) {
+
+      if (
+        message.id &&
+        seenIds.has(
+          message.id
+        )
+      ) {
+
+        console.warn(
+          "DUPLICATE MESSAGE IGNORED:",
+          message.id
+        );
+
+        continue;
+
+      }
+
+
+      if (message.id) {
+
+        seenIds.add(
+          message.id
+        );
+
+      }
+
+
+      uniqueMessages.push(
+        message
+      );
+
+    }
+
+
+    /*
+      Display one at a time.
+
+      This is important because voice/file
+      messages require signed URL requests.
+    */
+
+    for (
+      const message of uniqueMessages
+    ) {
+
+      await displayMessage(
+        message
+      );
+
+    }
+
+
+    /*
+      Scroll after the complete chat
+      has finished rendering.
+    */
+
+    messagesBox.scrollTop =
+      messagesBox.scrollHeight;
+
+
+    if ($("connectStatus")) {
+
+      $("connectStatus").textContent =
+        "Messages loaded: " +
+        uniqueMessages.length;
+
+    }
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "LOAD EXCEPTION:",
+      error
+    );
+
+
+    if ($("connectStatus")) {
+
+      $("connectStatus").textContent =
+        "Message error: " +
+        error.message;
+
+    }
+
+  }
+
+  finally {
+
+    messageLoadRunning =
+      false;
+
+
+    /*
+      If Realtime requested another
+      refresh while this load was running,
+      do exactly one more refresh.
+    */
+
+    if (messageLoadAgain) {
+
+      messageLoadAgain =
+        false;
+
+
+      setTimeout(
+        () => {
+
+          loadMessages();
+
+        },
+        100
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   DISPLAY MESSAGE
+   TEXT + LOCATION + VOICE + FILE
+========================================================= */
+
+async function displayMessage(
+  message
+) {
+
+  const div =
+    document.createElement("div");
+
+
+  const isMine =
+    message.sender_id ===
+    myUserId;
+
+
+  div.className =
+    "bubble " +
+    (
+      isMine
+        ? "me"
+        : "them"
+    );
+
+
+  /*
+    Use data-message-id so an extra
+    safety check can be performed.
+  */
+
+  if (message.id) {
+
+    div.dataset.messageId =
+      message.id;
+
+  }
+
+
+  /* =======================================================
+     LOCATION
+  ======================================================= */
+
+  if (
+    message.message_type ===
+    "location"
+  ) {
+
+    const link =
+      document.createElement("a");
+
+
+    link.href =
+      `https://www.openstreetmap.org/?mlat=${message.latitude}&mlon=${message.longitude}`;
+
+
+    link.target =
+      "_blank";
+
+
+    link.rel =
+      "noopener";
+
+
+    link.style.color =
+      "white";
+
+
+    link.textContent =
+      "📍 Shared location";
+
+
+    div.appendChild(
+      link
+    );
+
+  }
+
+
+  /* =======================================================
+     VOICE
+  ======================================================= */
+
+  else if (
+    message.message_type ===
+    "voice"
+  ) {
+
+    const title =
+      document.createElement("div");
+
+
+    title.textContent =
+      "🎙️ Voice message";
+
+
+    title.style.fontWeight =
+      "700";
+
+
+    title.style.marginBottom =
+      "6px";
+
+
+    div.appendChild(
+      title
     );
 
 
     if (
-      wasNearBottom
+      message.media_path &&
+      supabaseClient
     ) {
 
-      $("messages").scrollTop =
-        $("messages").scrollHeight;
+      const audio =
+        document.createElement("audio");
+
+
+      audio.controls =
+        true;
+
+
+      audio.preload =
+        "metadata";
+
+
+      audio.className =
+        "audio";
+
+
+      audio.style.width =
+        "100%";
+
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .storage
+          .from(
+            "voice-messages"
+          )
+          .createSignedUrl(
+            message.media_path,
+            3600
+          );
+
+
+      if (error) {
+
+        console.error(
+          "VOICE URL ERROR:",
+          error
+        );
+
+
+        const errorText =
+          document.createElement("div");
+
+
+        errorText.textContent =
+          "⚠️ Voice unavailable";
+
+
+        errorText.style.fontSize =
+          "11px";
+
+
+        div.appendChild(
+          errorText
+        );
+
+      }
+
+      else if (
+        data &&
+        data.signedUrl
+      ) {
+
+        audio.src =
+          data.signedUrl;
+
+
+        audio.onloadedmetadata =
+          () => {
+
+            console.log(
+              "VOICE DURATION:",
+              audio.duration,
+              "seconds"
+            );
+
+          };
+
+
+        audio.onerror =
+          event => {
+
+            console.error(
+              "AUDIO PLAY ERROR:",
+              event
+            );
+
+          };
+
+
+        div.appendChild(
+          audio
+        );
+
+      }
 
     }
 
   }
 
 
-  $("connectStatus").textContent =
-    "Message sent";
+  /* =======================================================
+     FILE
+  ======================================================= */
+
+  else if (
+    message.message_type ===
+    "file"
+  ) {
+
+    const fileBox =
+      document.createElement("div");
+
+
+    fileBox.style.display =
+      "flex";
+
+
+    fileBox.style.alignItems =
+      "center";
+
+
+    fileBox.style.gap =
+      "8px";
+
+
+    const icon =
+      document.createElement("span");
+
+
+    icon.textContent =
+      "📎";
+
+
+    icon.style.fontSize =
+      "22px";
+
+
+    fileBox.appendChild(
+      icon
+    );
+
+
+    const fileInfo =
+      document.createElement("div");
+
+
+    fileInfo.style.flex =
+      "1";
+
+
+    const fileName =
+      document.createElement("div");
+
+
+    fileName.textContent =
+      message.content ||
+      "Shared file";
+
+
+    fileName.style.fontWeight =
+      "700";
+
+
+    fileName.style.wordBreak =
+      "break-word";
+
+
+    fileInfo.appendChild(
+      fileName
+    );
+
+
+    /*
+      Create temporary signed URL.
+
+      This works for PRIVATE buckets and
+      allows BOTH sender and receiver to
+      open/download the file.
+    */
+
+    if (
+      message.media_path &&
+      supabaseClient
+    ) {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .storage
+          .from(
+            "shared-files"
+          )
+          .createSignedUrl(
+            message.media_path,
+            3600
+          );
+
+
+      if (error) {
+
+        console.error(
+          "FILE URL ERROR:",
+          error
+        );
+
+
+        const unavailable =
+          document.createElement("small");
+
+
+        unavailable.textContent =
+          "⚠️ File unavailable";
+
+
+        unavailable.style.display =
+          "block";
+
+
+        unavailable.style.marginTop =
+          "4px";
+
+
+        fileInfo.appendChild(
+          unavailable
+        );
+
+      }
+
+      else if (
+        data &&
+        data.signedUrl
+      ) {
+
+        /*
+          Detect common previewable files.
+        */
+
+        const fileNameLower =
+          (
+            message.content ||
+            ""
+          ).toLowerCase();
+
+
+        const imageFile =
+          /\.(jpg|jpeg|png|gif|webp|bmp)$/i
+            .test(
+              fileNameLower
+            );
+
+
+        const videoFile =
+          /\.(mp4|webm|mov|m4v)$/i
+            .test(
+              fileNameLower
+            );
+
+
+        const audioFile =
+          /\.(mp3|wav|ogg|m4a|aac|webm)$/i
+            .test(
+              fileNameLower
+            );
+
+
+        /*
+          IMAGE PREVIEW
+        */
+
+        if (imageFile) {
+
+          const image =
+            document.createElement(
+              "img"
+            );
+
+
+          image.src =
+            data.signedUrl;
+
+
+          image.alt =
+            message.content ||
+            "Shared image";
+
+
+          image.style.maxWidth =
+            "100%";
+
+
+          image.style.maxHeight =
+            "250px";
+
+
+          image.style.borderRadius =
+            "10px";
+
+
+          image.style.marginTop =
+            "6px";
+
+
+          image.style.display =
+            "block";
+
+
+          fileInfo.appendChild(
+            image
+          );
+
+        }
+
+
+        /*
+          VIDEO PREVIEW
+        */
+
+        else if (videoFile) {
+
+          const video =
+            document.createElement(
+              "video"
+            );
+
+
+          video.src =
+            data.signedUrl;
+
+
+          video.controls =
+            true;
+
+
+          video.preload =
+            "metadata";
+
+
+          video.style.width =
+            "100%";
+
+
+          video.style.maxHeight =
+            "250px";
+
+
+          video.style.marginTop =
+            "6px";
+
+
+          fileInfo.appendChild(
+            video
+          );
+
+        }
+
+
+        /*
+          AUDIO PREVIEW
+        */
+
+        else if (audioFile) {
+
+          const audio =
+            document.createElement(
+              "audio"
+            );
+
+
+          audio.src =
+            data.signedUrl;
+
+
+          audio.controls =
+            true;
+
+
+          audio.preload =
+            "metadata";
+
+
+          audio.style.width =
+            "100%";
+
+
+          audio.style.marginTop =
+            "6px";
+
+
+          fileInfo.appendChild(
+            audio
+          );
+
+        }
+
+
+        /*
+          OPEN / DOWNLOAD
+        */
+
+        const download =
+          document.createElement(
+            "a"
+          );
+
+
+        download.href =
+          data.signedUrl;
+
+
+        download.target =
+          "_blank";
+
+
+        download.rel =
+          "noopener";
+
+
+        download.textContent =
+          "⬇️ Open / Download";
+
+
+        download.style.display =
+          "inline-block";
+
+
+        download.style.marginTop =
+          "6px";
+
+
+        download.style.color =
+          "white";
+
+
+        download.style.fontSize =
+          "12px";
+
+
+        download.style.textDecoration =
+          "underline";
+
+
+        fileInfo.appendChild(
+          download
+        );
+
+      }
+
+    }
+
+
+    fileBox.appendChild(
+      fileInfo
+    );
+
+
+    div.appendChild(
+      fileBox
+    );
+
+  }
+
+
+  /* =======================================================
+     TEXT
+  ======================================================= */
+
+  else {
+
+    div.textContent =
+      message.content ||
+      "";
+
+  }
+
+
+  /* =======================================================
+     TIME
+  ======================================================= */
+
+  const time =
+    document.createElement(
+      "time"
+    );
+
+
+  const date =
+    new Date(
+      message.created_at
+    );
+
+
+  time.textContent =
+    date.toLocaleTimeString(
+      [],
+      {
+
+        hour:
+          "2-digit",
+
+        minute:
+          "2-digit"
+
+      }
+    );
+
+
+  div.appendChild(
+    time
+  );
+
+
+  /*
+    Final safety check:
+    Don't add the same message ID
+    if it somehow already exists.
+  */
+
+  if (
+    message.id &&
+    $("messages")
+      .querySelector(
+        `[data-message-id="${message.id}"]`
+      )
+  ) {
+
+    console.warn(
+      "MESSAGE ALREADY DISPLAYED:",
+      message.id
+    );
+
+    return;
+
+  }
+
+
+  $("messages")
+    .appendChild(
+      div
+    );
+
+
+  console.log(
+    "DISPLAYED MESSAGE:",
+    {
+
+      id:
+        message.id,
+
+      type:
+        message.message_type,
+
+      sender:
+        message.sender_id,
+
+      receiver:
+        message.receiver_id,
+
+      mine:
+        isMine,
+
+      media:
+        message.media_path,
+
+      content:
+        message.content
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   REALTIME MESSAGES
+========================================================= */
+
+function subscribeMessages() {
+
+  if (
+    !supabaseClient ||
+    !myUserId
+  ) {
+
+    return;
+
+  }
+
+
+  if (messageChannel) {
+
+    supabaseClient
+      .removeChannel(
+        messageChannel
+      );
+
+  }
+
+
+  messageChannel =
+    supabaseClient
+      .channel(
+        "messages-" +
+        myUserId +
+        "-" +
+        Date.now()
+      )
+      .on(
+
+        "postgres_changes",
+
+        {
+
+          event:
+            "INSERT",
+
+          schema:
+            "public",
+
+          table:
+            "safe_messages"
+
+        },
+
+        payload => {
+
+          console.log(
+            "REALTIME NEW MESSAGE:",
+            payload.new
+          );
+
+
+          const message =
+            payload.new;
+
+
+          if (
+            message.receiver_id ===
+              myUserId ||
+
+            message.sender_id ===
+              myUserId
+          ) {
+
+            /*
+              loadMessages() itself prevents
+              overlapping refreshes.
+            */
+
+            loadMessages();
+
+          }
+
+        }
+
+      )
+      .subscribe(
+        channelStatus => {
+
+          console.log(
+            "MESSAGE REALTIME STATUS:",
+            channelStatus
+          );
+
+        }
+      );
 
 }
 
@@ -2028,9 +2197,11 @@ if ($("shareLocation")) {
 
         locate();
 
+
         alert(
           "Please allow GPS and try again."
         );
+
 
         return;
 
@@ -2038,7 +2209,6 @@ if ($("shareLocation")) {
 
 
       const {
-        data,
         error
       } =
         await supabaseClient
@@ -2060,46 +2230,32 @@ if ($("shareLocation")) {
             longitude:
               myPosition.lon
 
-          })
-          .select()
-          .single();
+          });
 
 
       if (error) {
 
-        $("shareStatus").textContent =
-          error.message;
+        if ($("shareStatus")) {
+
+          $("shareStatus").textContent =
+            error.message;
+
+        }
 
         return;
 
       }
 
 
-      $("shareStatus").textContent =
-        "✓ Location shared.";
+      if ($("shareStatus")) {
 
-
-      /*
-        Display immediately.
-      */
-
-      if (
-        data &&
-        data.id
-      ) {
-
-        await displayMessage(
-          data
-        );
-
-        displayedMessageIds.add(
-          data.id
-        );
-
-        $("messages").scrollTop =
-          $("messages").scrollHeight;
+        $("shareStatus").textContent =
+          "✓ Location shared.";
 
       }
+
+
+      await loadMessages();
 
     };
 
@@ -2145,8 +2301,10 @@ if ($("record")) {
           await navigator
             .mediaDevices
             .getUserMedia({
+
               audio:
                 true
+
             });
 
 
@@ -2192,8 +2350,10 @@ if ($("record")) {
               new Blob(
                 recordedChunks,
                 {
+
                   type:
                     recorder.mimeType
+
                 }
               );
 
@@ -2272,152 +2432,209 @@ if ($("sendVoice")) {
       }
 
 
-      const recordedMimeType =
-        voiceBlob.type ||
-        "audio/webm";
+      if (
+        !supabaseClient ||
+        !myUserId
+      ) {
+
+        alert(
+          "Supabase session is not ready."
+        );
+
+        return;
+
+      }
 
 
-      const extension =
-        recordedMimeType.includes(
-          "mp4"
-        )
-          ? "mp4"
-          : recordedMimeType.includes(
-              "ogg"
-            )
+      try {
+
+        const recordedMimeType =
+          voiceBlob.type ||
+          "audio/webm";
+
+
+        const extension =
+          recordedMimeType.includes(
+            "mp4"
+          )
+
+            ? "mp4"
+
+            : recordedMimeType.includes(
+                "ogg"
+              )
+
               ? "ogg"
+
               : "webm";
 
 
-      const filename =
-        myUserId +
-        "/" +
-        crypto.randomUUID() +
-        "." +
-        extension;
+        const filename =
+          myUserId +
+          "/" +
+          crypto.randomUUID() +
+          "." +
+          extension;
 
 
-      $("connectStatus").textContent =
-        "Uploading voice...";
+        if ($("connectStatus")) {
+
+          $("connectStatus").textContent =
+            "Uploading voice...";
+
+        }
 
 
-      const upload =
-        await supabaseClient
-          .storage
-          .from(
-            "voice-messages"
-          )
-          .upload(
-            filename,
-            voiceBlob,
-            {
-              contentType:
-                recordedMimeType
-            }
+        const upload =
+          await supabaseClient
+            .storage
+            .from(
+              "voice-messages"
+            )
+            .upload(
+              filename,
+              voiceBlob,
+              {
+
+                contentType:
+                  recordedMimeType,
+
+                upsert:
+                  false
+
+              }
+            );
+
+
+        if (upload.error) {
+
+          console.error(
+            "VOICE UPLOAD ERROR:",
+            upload.error
           );
 
 
-      if (upload.error) {
+          if ($("connectStatus")) {
 
-        alert(
-          upload.error.message
-        );
+            $("connectStatus").textContent =
+              "Voice upload error: " +
+              upload.error.message;
 
-        return;
-
-      }
+          }
 
 
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from("safe_messages")
-          .insert({
+          return;
 
-            sender_id:
-              myUserId,
-
-            receiver_id:
-              friend.id,
-
-            message_type:
-              "voice",
-
-            media_path:
-              filename
-
-          })
-          .select()
-          .single();
+        }
 
 
-      if (error) {
+        const {
+          error
+        } =
+          await supabaseClient
+            .from("safe_messages")
+            .insert({
 
-        alert(
-          error.message
-        );
+              sender_id:
+                myUserId,
 
-        return;
+              receiver_id:
+                friend.id,
 
-      }
+              message_type:
+                "voice",
+
+              media_path:
+                filename
+
+            });
 
 
-      voiceBlob =
-        null;
+        if (error) {
 
-
-      if ($("preview")) {
-
-        $("preview")
-          .classList
-          .add(
-            "hidden"
+          console.error(
+            "VOICE MESSAGE ERROR:",
+            error
           );
 
-        $("preview").src =
-          "";
+
+          if ($("connectStatus")) {
+
+            $("connectStatus").textContent =
+              "Voice message error: " +
+              error.message;
+
+          }
+
+
+          return;
+
+        }
+
+
+        voiceBlob =
+          null;
+
+
+        if ($("preview")) {
+
+          $("preview")
+            .classList
+            .add(
+              "hidden"
+            );
+
+          $("preview").src =
+            "";
+
+        }
+
+
+        if ($("sendVoice")) {
+
+          $("sendVoice")
+            .classList
+            .add(
+              "hidden"
+            );
+
+        }
+
+
+        if ($("connectStatus")) {
+
+          $("connectStatus").textContent =
+            "✓ Voice sent";
+
+        }
+
+
+        /*
+          Safe because loadMessages()
+          prevents overlapping refreshes.
+        */
+
+        await loadMessages();
 
       }
 
+      catch (error) {
 
-      if ($("sendVoice")) {
-
-        $("sendVoice")
-          .classList
-          .add(
-            "hidden"
-          );
-
-      }
-
-
-      /*
-        Display immediately.
-      */
-
-      if (
-        data &&
-        data.id
-      ) {
-
-        await displayMessage(
-          data
+        console.error(
+          "VOICE SEND ERROR:",
+          error
         );
 
-        displayedMessageIds.add(
-          data.id
-        );
 
-        $("messages").scrollTop =
-          $("messages").scrollHeight;
+        if ($("connectStatus")) {
+
+          $("connectStatus").textContent =
+            "Voice error: " +
+            error.message;
+
+        }
 
       }
-
-
-      $("connectStatus").textContent =
-        "✓ Voice message sent";
 
     };
 
@@ -2444,7 +2661,11 @@ if ($("shareFile")) {
       }
 
 
-      $("fileInput").click();
+      if ($("fileInput")) {
+
+        $("fileInput").click();
+
+      }
 
     };
 
@@ -2457,8 +2678,7 @@ if ($("fileInput")) {
     async () => {
 
       const file =
-        $("fileInput")
-          .files[0];
+        $("fileInput").files[0];
 
 
       if (!file) {
@@ -2474,8 +2694,29 @@ if ($("fileInput")) {
           "Connect to a user first."
         );
 
+
         $("fileInput").value =
           "";
+
+
+        return;
+
+      }
+
+
+      if (
+        !supabaseClient ||
+        !myUserId
+      ) {
+
+        alert(
+          "Supabase session is not ready."
+        );
+
+
+        $("fileInput").value =
+          "";
+
 
         return;
 
@@ -2483,8 +2724,7 @@ if ($("fileInput")) {
 
 
       /*
-        Maximum:
-        25 MB
+        Maximum 25 MB.
       */
 
       const maxSize =
@@ -2502,18 +2742,24 @@ if ($("fileInput")) {
           "File is too large. Maximum size is 25 MB."
         );
 
+
         $("fileInput").value =
           "";
+
 
         return;
 
       }
 
 
-      $("connectStatus").textContent =
-        "Uploading " +
-        file.name +
-        "...";
+      if ($("connectStatus")) {
+
+        $("connectStatus").textContent =
+          "Uploading " +
+          file.name +
+          "...";
+
+      }
 
 
       try {
@@ -2534,6 +2780,10 @@ if ($("fileInput")) {
           safeName;
 
 
+        /*
+          Upload to shared-files bucket.
+        */
+
         const upload =
           await supabaseClient
             .storage
@@ -2544,12 +2794,14 @@ if ($("fileInput")) {
               filePath,
               file,
               {
+
                 contentType:
                   file.type ||
                   "application/octet-stream",
 
                 upsert:
                   false
+
               }
             );
 
@@ -2562,17 +2814,25 @@ if ($("fileInput")) {
           );
 
 
-          $("connectStatus").textContent =
-            "File upload error: " +
-            upload.error.message;
+          if ($("connectStatus")) {
+
+            $("connectStatus").textContent =
+              "File upload error: " +
+              upload.error.message;
+
+          }
+
 
           return;
 
         }
 
 
+        /*
+          Save message record.
+        */
+
         const {
-          data,
           error
         } =
           await supabaseClient
@@ -2594,9 +2854,7 @@ if ($("fileInput")) {
               media_path:
                 filePath
 
-            })
-            .select()
-            .single();
+            });
 
 
         if (error) {
@@ -2607,9 +2865,14 @@ if ($("fileInput")) {
           );
 
 
-          $("connectStatus").textContent =
-            "File message error: " +
-            error.message;
+          if ($("connectStatus")) {
+
+            $("connectStatus").textContent =
+              "File message error: " +
+              error.message;
+
+          }
+
 
           return;
 
@@ -2620,31 +2883,15 @@ if ($("fileInput")) {
           "";
 
 
-        /*
-          Display immediately.
-        */
+        if ($("connectStatus")) {
 
-        if (
-          data &&
-          data.id
-        ) {
-
-          await displayMessage(
-            data
-          );
-
-          displayedMessageIds.add(
-            data.id
-          );
-
-          $("messages").scrollTop =
-            $("messages").scrollHeight;
+          $("connectStatus").textContent =
+            "✓ File shared";
 
         }
 
 
-        $("connectStatus").textContent =
-          "✓ File shared";
+        await loadMessages();
 
       }
 
@@ -2656,9 +2903,13 @@ if ($("fileInput")) {
         );
 
 
-        $("connectStatus").textContent =
-          "File error: " +
-          error.message;
+        if ($("connectStatus")) {
+
+          $("connectStatus").textContent =
+            "File error: " +
+            error.message;
+
+        }
 
       }
 
@@ -2690,8 +2941,10 @@ async function startCall() {
       await navigator
         .mediaDevices
         .getUserMedia({
+
           audio:
             true
+
         });
 
 
@@ -2701,8 +2954,10 @@ async function startCall() {
         iceServers: [
 
           {
+
             urls:
               "stun:stun.l.google.com:19302"
+
           }
 
         ]
@@ -2724,9 +2979,13 @@ async function startCall() {
     peer.ontrack =
       event => {
 
-        $("remoteAudio")
-          .srcObject =
-          event.streams[0];
+        if ($("remoteAudio")) {
+
+          $("remoteAudio")
+            .srcObject =
+            event.streams[0];
+
+        }
 
       };
 
@@ -2775,15 +3034,23 @@ async function startCall() {
     });
 
 
-    $("callStatus").textContent =
-      "Calling...";
+    if ($("callStatus")) {
+
+      $("callStatus").textContent =
+        "Calling...";
+
+    }
 
   }
 
   catch (error) {
 
-    $("callStatus").textContent =
-      error.message;
+    if ($("callStatus")) {
+
+      $("callStatus").textContent =
+        error.message;
+
+    }
 
   }
 
@@ -2806,7 +3073,11 @@ async function sendCallSignal(
   signal
 ) {
 
-  if (!friend) {
+  if (
+    !friend ||
+    !supabaseClient ||
+    !myUserId
+  ) {
 
     return;
 
@@ -2846,6 +3117,10 @@ async function sendCallSignal(
 }
 
 
+/* =========================================================
+   CALL REALTIME
+========================================================= */
+
 function subscribeCalls() {
 
   if (
@@ -2877,8 +3152,11 @@ function subscribeCalls() {
         Date.now()
       )
       .on(
+
         "postgres_changes",
+
         {
+
           event:
             "INSERT",
 
@@ -2887,7 +3165,9 @@ function subscribeCalls() {
 
           table:
             "safe_call_signals"
+
         },
+
         async payload => {
 
           const signal =
@@ -2910,6 +3190,7 @@ function subscribeCalls() {
           );
 
         }
+
       )
       .subscribe(
         callStatus => {
@@ -2953,8 +3234,10 @@ async function handleCallSignal(
         await navigator
           .mediaDevices
           .getUserMedia({
+
             audio:
               true
+
           });
 
 
@@ -2964,8 +3247,10 @@ async function handleCallSignal(
           iceServers: [
 
             {
+
               urls:
                 "stun:stun.l.google.com:19302"
+
             }
 
           ]
@@ -2987,9 +3272,13 @@ async function handleCallSignal(
       peer.ontrack =
         event => {
 
-          $("remoteAudio")
-            .srcObject =
-            event.streams[0];
+          if ($("remoteAudio")) {
+
+            $("remoteAudio")
+              .srcObject =
+              event.streams[0];
+
+          }
 
         };
 
@@ -3066,8 +3355,12 @@ async function handleCallSignal(
       });
 
 
-    $("callStatus").textContent =
-      "Incoming call connected.";
+    if ($("callStatus")) {
+
+      $("callStatus").textContent =
+        "Incoming call connected.";
+
+    }
 
   }
 
@@ -3090,8 +3383,12 @@ async function handleCallSignal(
       });
 
 
-    $("callStatus").textContent =
-      "Call connected.";
+    if ($("callStatus")) {
+
+      $("callStatus").textContent =
+        "Call connected.";
+
+    }
 
   }
 
@@ -3159,8 +3456,21 @@ if ($("hangup")) {
       }
 
 
-      $("callStatus").textContent =
-        "No active call.";
+      if ($("remoteAudio")) {
+
+        $("remoteAudio")
+          .srcObject =
+          null;
+
+      }
+
+
+      if ($("callStatus")) {
+
+        $("callStatus").textContent =
+          "No active call.";
+
+      }
 
     };
 
@@ -3366,6 +3676,7 @@ if ($("route")) {
           L.geoJSON(
             route.geometry,
             {
+
               style: {
 
                 color:
@@ -3384,8 +3695,10 @@ if ($("route")) {
         map.fitBounds(
           routeLayer.getBounds(),
           {
+
             padding:
               [25, 25]
+
           }
         );
 
@@ -3475,6 +3788,7 @@ if ($("route")) {
           .textContent =
           error.message;
 
+
         $("routeState")
           .textContent =
           "Error";
@@ -3494,30 +3808,38 @@ const nearbyTypes = {
 
   metro:
     [
+
       "🚇",
       "Metro",
       `["railway"="station"]["station"="subway"]`
+
     ],
 
   bus:
     [
+
       "🚌",
       "Bus",
       `["highway"="bus_stop"]`
+
     ],
 
   fuel:
     [
+
       "⛽",
       "Fuel",
       `["amenity"="fuel"]`
+
     ],
 
   atm:
     [
+
       "🏧",
       "ATM",
       `["amenity"="atm"]`
+
     ]
 
 };
@@ -3631,11 +3953,13 @@ async function findNearby(
       await fetch(
         "https://overpass-api.de/api/interpreter",
         {
+
           method:
             "POST",
 
           body:
             query
+
         }
       );
 
