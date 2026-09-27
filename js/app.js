@@ -1,17 +1,7 @@
 /* =========================================================
    SAFE ROUTE - PHASE 1
    FULL COMMUNICATION + MAP + GPS + ROUTE
-
-   Includes:
-   • Text chat
-   • Voice messages
-   • Voice duration
-   • File sharing
-   • Location sharing
-   • Voice calls
-   • GPS
-   • Route advisory
-   • Nearby search
+   STABLE CHAT + VOICE + FILE SHARING
 ========================================================= */
 
 
@@ -21,7 +11,6 @@
 
 const CONFIG =
   window.SAFE_ROUTE_CONFIG || {};
-
 
 const SUPABASE_READY =
   CONFIG.SUPABASE_URL &&
@@ -51,10 +40,8 @@ const $ =
 function status(text) {
 
   if ($("mapStatus")) {
-
     $("mapStatus").textContent =
       text;
-
   }
 
 }
@@ -90,7 +77,6 @@ function generateSafeId() {
   let result =
     "SR-";
 
-
   for (
     let i = 0;
     i < 5;
@@ -107,7 +93,6 @@ function generateSafeId() {
 
   }
 
-
   return result;
 
 }
@@ -123,7 +108,6 @@ if (!mySafeId) {
 
   mySafeId =
     generateSafeId();
-
 
   localStorage.setItem(
     "safe_route_id",
@@ -145,64 +129,50 @@ if ($("mySafeId")) {
    USER STATE
 ========================================================= */
 
-let myUserId =
-  null;
+let myUserId = null;
+
+let friend = null;
+
+let myPosition = null;
+
+let userMarker = null;
+
+let userCircle = null;
+
+let routeLayer = null;
+
+let nearbyLayer = null;
+
+let messageChannel = null;
+
+let callChannel = null;
+
+let peer = null;
+
+let localStream = null;
+
+let recorder = null;
+
+let recordedChunks = [];
+
+let voiceBlob = null;
 
 
-let friend =
-  null;
+/*
+  IMPORTANT CHAT STATE
 
+  We no longer poll every 2 seconds.
 
-let myPosition =
-  null;
+  This prevents the chat from repeatedly
+  clearing and rebuilding itself while
+  voice audio is loading.
+*/
 
+let displayedMessageIds =
+  new Set();
 
-let userMarker =
-  null;
-
-
-let userCircle =
-  null;
-
-
-let routeLayer =
-  null;
-
-
-let nearbyLayer =
-  null;
-
-
-let messageChannel =
-  null;
-
-
-let callChannel =
-  null;
-
-
-let messagePolling =
-  null;
-
-
-let peer =
-  null;
-
-
-let localStream =
-  null;
-
-
-let recorder =
-  null;
-
-
-let recordedChunks =
-  [];
-
-
-let voiceBlob =
-  null;
+let loadingMessages =
+  false;
 
 
 /* =========================================================
@@ -212,10 +182,7 @@ let voiceBlob =
 const map =
   L.map("map")
     .setView(
-      [
-        17.385,
-        78.4867
-      ],
+      [17.385, 78.4867],
       12
     );
 
@@ -327,7 +294,6 @@ function locate() {
 
                 fillOpacity:
                   0.08
-
               }
             )
               .addTo(map);
@@ -350,7 +316,6 @@ function locate() {
 
       },
 
-
       error => {
 
         console.error(
@@ -358,13 +323,11 @@ function locate() {
           error
         );
 
-
         status(
           "Location permission denied or unavailable."
         );
 
       },
-
 
       {
         enableHighAccuracy:
@@ -451,14 +414,12 @@ async function startAnonymousSession() {
       "warn"
     );
 
-
     if ($("connectStatus")) {
 
       $("connectStatus").textContent =
         "Supabase client was not created.";
 
     }
-
 
     return null;
 
@@ -611,7 +572,6 @@ async function startAnonymousSession() {
     return data.user;
 
   }
-
 
   catch (error) {
 
@@ -978,164 +938,27 @@ async function connectToUser() {
     "✓ Connected";
 
 
-  await loadMessages();
+  /*
+    IMPORTANT:
+    Reset the displayed-message list
+    when changing friend.
+  */
+
+  displayedMessageIds.clear();
 
 
-  startMessagePolling();
-
-}
-
-
-/* =========================================================
-   MESSAGE POLLING
-========================================================= */
-
-function startMessagePolling() {
-
-  if (messagePolling) {
-
-    clearInterval(
-      messagePolling
-    );
-
-  }
-
-
-  messagePolling =
-    setInterval(
-      () => {
-
-        if (
-          friend &&
-          supabaseClient &&
-          myUserId
-        ) {
-
-          loadMessages();
-
-        }
-
-      },
-      2000
-    );
-
-}
-
-
-/* =========================================================
-   SEND TEXT MESSAGE
-========================================================= */
-
-if ($("send")) {
-
-  $("send").onclick =
-    sendMessage;
-
-}
-
-
-async function sendMessage() {
-
-  if (!friend) {
-
-    alert(
-      "Connect to a Safe Route user first."
-    );
-
-    return;
-
-  }
-
-
-  if (!myUserId) {
-
-    alert(
-      "Supabase user session is not ready."
-    );
-
-    return;
-
-  }
-
-
-  const input =
-    $("message");
-
-
-  const message =
-    input.value.trim();
-
-
-  if (!message) {
-
-    return;
-
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("safe_messages")
-      .insert({
-
-        sender_id:
-          myUserId,
-
-        receiver_id:
-          friend.id,
-
-        message_type:
-          "text",
-
-        content:
-          message
-
-      })
-      .select()
-      .single();
-
-
-  if (error) {
-
-    console.error(
-      "SEND ERROR:",
-      error
-    );
-
-
-    $("connectStatus").textContent =
-      "Send error: " +
-      error.message;
-
-    return;
-
-  }
-
-
-  console.log(
-    "MESSAGE SAVED:",
-    data
-  );
-
-
-  input.value =
-    "";
-
+  /*
+    Load old messages ONCE.
+  */
 
   await loadMessages();
-
-
-  $("connectStatus").textContent =
-    "Message sent";
 
 }
 
 
 /* =========================================================
    LOAD MESSAGES
+   STABLE - NO POLLING
 ========================================================= */
 
 async function loadMessages() {
@@ -1151,16 +974,24 @@ async function loadMessages() {
   }
 
 
+  if (loadingMessages) {
+
+    return;
+
+  }
+
+
+  loadingMessages = true;
+
+
   try {
 
     console.log(
       "LOADING CHAT:",
       {
         myUserId,
-
         friendId:
           friend.id
-
       }
     );
 
@@ -1201,22 +1032,32 @@ async function loadMessages() {
     }
 
 
-    console.log(
-      "MESSAGES RECEIVED FROM SUPABASE:",
-      data
-    );
+    const messages =
+      data || [];
 
 
-    $("messages").innerHTML =
+    const messagesBox =
+      $("messages");
+
+
+    /*
+      Clear only when starting
+      a completely new conversation.
+    */
+
+    messagesBox.innerHTML =
       "";
 
 
+    displayedMessageIds.clear();
+
+
     if (
-      !data ||
-      data.length === 0
+      messages.length ===
+      0
     ) {
 
-      $("messages").innerHTML =
+      messagesBox.innerHTML =
         `<div class="muted">
           No messages yet.
         </div>`;
@@ -1231,34 +1072,47 @@ async function loadMessages() {
 
 
     /*
-      IMPORTANT:
-      Display messages one by one.
-
-      Voice and file messages need a
-      signed URL from Supabase storage.
+      Display messages sequentially.
+      This keeps text, voice, location
+      and files in their correct order.
     */
 
     for (
-      const message of data
+      const message of messages
     ) {
+
+      if (!message.id) {
+
+        continue;
+
+      }
+
 
       await displayMessage(
         message
       );
 
+
+      displayedMessageIds.add(
+        message.id
+      );
+
     }
 
 
-    $("messages").scrollTop =
-      $("messages").scrollHeight;
+    /*
+      Initial load goes to bottom.
+    */
+
+    messagesBox.scrollTop =
+      messagesBox.scrollHeight;
 
 
     $("connectStatus").textContent =
       "Messages loaded: " +
-      data.length;
+      messages.length;
 
   }
-
 
   catch (error) {
 
@@ -1274,17 +1128,48 @@ async function loadMessages() {
 
   }
 
+  finally {
+
+    loadingMessages =
+      false;
+
+  }
+
 }
 
 
 /* =========================================================
    DISPLAY MESSAGE
-   TEXT + LOCATION + VOICE + FILE
 ========================================================= */
 
 async function displayMessage(
   message
 ) {
+
+  if (
+    !message ||
+    !message.id
+  ) {
+
+    return;
+
+  }
+
+
+  /*
+    Do not display duplicate messages.
+  */
+
+  if (
+    displayedMessageIds.has(
+      message.id
+    )
+  ) {
+
+    return;
+
+  }
+
 
   const div =
     document.createElement(
@@ -1349,7 +1234,7 @@ async function displayMessage(
 
 
   /* =======================================================
-     VOICE MESSAGE
+     VOICE
   ======================================================= */
 
   else if (
@@ -1407,28 +1292,6 @@ async function displayMessage(
         "100%";
 
 
-      const durationText =
-        document.createElement(
-          "small"
-        );
-
-
-      durationText.textContent =
-        "Loading duration...";
-
-
-      durationText.style.display =
-        "block";
-
-
-      durationText.style.marginTop =
-        "4px";
-
-
-      durationText.style.opacity =
-        "0.8";
-
-
       const {
         data,
         error
@@ -1476,7 +1339,6 @@ async function displayMessage(
 
       }
 
-
       else if (
         data &&
         data.signedUrl
@@ -1486,60 +1348,14 @@ async function displayMessage(
           data.signedUrl;
 
 
-        /*
-          Browser gets the actual
-          audio duration here.
-        */
-
         audio.onloadedmetadata =
           () => {
 
-            if (
-              Number.isFinite(
-                audio.duration
-              )
-            ) {
-
-              const totalSeconds =
-                Math.round(
-                  audio.duration
-                );
-
-
-              const minutes =
-                Math.floor(
-                  totalSeconds /
-                  60
-                );
-
-
-              const seconds =
-                totalSeconds %
-                60;
-
-
-              durationText.textContent =
-                "⏱️ " +
-                String(minutes)
-                  .padStart(
-                    2,
-                    "0"
-                  ) +
-                ":" +
-                String(seconds)
-                  .padStart(
-                    2,
-                    "0"
-                  );
-
-
-              console.log(
-                "VOICE DURATION:",
-                audio.duration,
-                "seconds"
-              );
-
-            }
+            console.log(
+              "VOICE DURATION:",
+              audio.duration,
+              "seconds"
+            );
 
           };
 
@@ -1552,20 +1368,11 @@ async function displayMessage(
               event
             );
 
-
-            durationText.textContent =
-              "⚠️ Unable to read audio";
-
           };
 
 
         div.appendChild(
           audio
-        );
-
-
-        div.appendChild(
-          durationText
         );
 
       }
@@ -1699,7 +1506,6 @@ async function displayMessage(
 
       }
 
-
       else if (
         data &&
         data.signedUrl
@@ -1802,7 +1608,6 @@ async function displayMessage(
 
         minute:
           "2-digit"
-
       }
     );
 
@@ -1821,7 +1626,6 @@ async function displayMessage(
   console.log(
     "DISPLAYED MESSAGE:",
     {
-
       id:
         message.id,
 
@@ -1842,7 +1646,6 @@ async function displayMessage(
 
       content:
         message.content
-
     }
   );
 
@@ -1894,9 +1697,8 @@ function subscribeMessages() {
 
           table:
             "safe_messages"
-
         },
-        payload => {
+        async payload => {
 
           console.log(
             "REALTIME NEW MESSAGE:",
@@ -1908,17 +1710,135 @@ function subscribeMessages() {
             payload.new;
 
 
-          if (
-            message.receiver_id ===
-              myUserId ||
+          /*
+            Ignore unrelated messages.
+          */
 
-            message.sender_id ===
+          if (
+            message.receiver_id !==
+              myUserId &&
+
+            message.sender_id !==
               myUserId
           ) {
 
-            loadMessages();
+            return;
 
           }
+
+
+          /*
+            Ignore duplicates.
+          */
+
+          if (
+            displayedMessageIds.has(
+              message.id
+            )
+          ) {
+
+            return;
+
+          }
+
+
+          /*
+            Only display messages belonging
+            to the currently connected user.
+          */
+
+          if (
+            !friend ||
+            !(
+              (
+                message.sender_id ===
+                myUserId &&
+
+                message.receiver_id ===
+                friend.id
+              )
+              ||
+              (
+                message.sender_id ===
+                friend.id &&
+
+                message.receiver_id ===
+                myUserId
+              )
+            )
+          ) {
+
+            return;
+
+          }
+
+
+          const messagesBox =
+            $("messages");
+
+
+          /*
+            Check whether user is near bottom.
+          */
+
+          const wasNearBottom =
+            messagesBox.scrollHeight -
+            messagesBox.scrollTop -
+            messagesBox.clientHeight <
+            120;
+
+
+          /*
+            Remove "No messages yet"
+            placeholder.
+          */
+
+          const placeholder =
+            messagesBox.querySelector(
+              ".muted"
+            );
+
+
+          if (
+            placeholder &&
+            placeholder.textContent
+              .includes(
+                "No messages yet"
+              )
+          ) {
+
+            placeholder.remove();
+
+          }
+
+
+          await displayMessage(
+            message
+          );
+
+
+          displayedMessageIds.add(
+            message.id
+          );
+
+
+          /*
+            Only scroll automatically if
+            the user was already near bottom.
+          */
+
+          if (
+            wasNearBottom
+          ) {
+
+            messagesBox.scrollTop =
+              messagesBox.scrollHeight;
+
+          }
+
+
+          $("connectStatus").textContent =
+            "New message";
 
         }
       )
@@ -1932,6 +1852,154 @@ function subscribeMessages() {
 
         }
       );
+
+}
+
+
+/* =========================================================
+   SEND MESSAGE
+========================================================= */
+
+if ($("send")) {
+
+  $("send").onclick =
+    sendMessage;
+
+}
+
+
+async function sendMessage() {
+
+  if (!friend) {
+
+    alert(
+      "Connect to a Safe Route user first."
+    );
+
+    return;
+
+  }
+
+
+  if (!myUserId) {
+
+    alert(
+      "Supabase user session is not ready."
+    );
+
+    return;
+
+  }
+
+
+  const input =
+    $("message");
+
+
+  const message =
+    input.value.trim();
+
+
+  if (!message) {
+
+    return;
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("safe_messages")
+      .insert({
+
+        sender_id:
+          myUserId,
+
+        receiver_id:
+          friend.id,
+
+        message_type:
+          "text",
+
+        content:
+          message
+
+      })
+      .select()
+      .single();
+
+
+  if (error) {
+
+    console.error(
+      "SEND ERROR:",
+      error
+    );
+
+
+    $("connectStatus").textContent =
+      "Send error: " +
+      error.message;
+
+    return;
+
+  }
+
+
+  console.log(
+    "MESSAGE SAVED:",
+    data
+  );
+
+
+  input.value =
+    "";
+
+
+  /*
+    Display immediately on sender side.
+    Realtime will be ignored as duplicate.
+  */
+
+  if (
+    data &&
+    data.id
+  ) {
+
+    const wasNearBottom =
+      $("messages").scrollHeight -
+      $("messages").scrollTop -
+      $("messages").clientHeight <
+      120;
+
+
+    await displayMessage(
+      data
+    );
+
+
+    displayedMessageIds.add(
+      data.id
+    );
+
+
+    if (
+      wasNearBottom
+    ) {
+
+      $("messages").scrollTop =
+        $("messages").scrollHeight;
+
+    }
+
+  }
+
+
+  $("connectStatus").textContent =
+    "Message sent";
 
 }
 
@@ -1970,6 +2038,7 @@ if ($("shareLocation")) {
 
 
       const {
+        data,
         error
       } =
         await supabaseClient
@@ -1991,7 +2060,9 @@ if ($("shareLocation")) {
             longitude:
               myPosition.lon
 
-          });
+          })
+          .select()
+          .single();
 
 
       if (error) {
@@ -2008,7 +2079,27 @@ if ($("shareLocation")) {
         "✓ Location shared.";
 
 
-      await loadMessages();
+      /*
+        Display immediately.
+      */
+
+      if (
+        data &&
+        data.id
+      ) {
+
+        await displayMessage(
+          data
+        );
+
+        displayedMessageIds.add(
+          data.id
+        );
+
+        $("messages").scrollTop =
+          $("messages").scrollHeight;
+
+      }
 
     };
 
@@ -2063,62 +2154,16 @@ if ($("record")) {
           [];
 
 
-        let mimeType =
-          "";
-
-
-        if (
-          MediaRecorder.isTypeSupported(
-            "audio/webm;codecs=opus"
-          )
-        ) {
-
-          mimeType =
-            "audio/webm;codecs=opus";
-
-        }
-
-        else if (
-          MediaRecorder.isTypeSupported(
-            "audio/webm"
-          )
-        ) {
-
-          mimeType =
-            "audio/webm";
-
-        }
-
-        else if (
-          MediaRecorder.isTypeSupported(
-            "audio/mp4"
-          )
-        ) {
-
-          mimeType =
-            "audio/mp4";
-
-        }
-
-
         recorder =
-          mimeType
-            ? new MediaRecorder(
-                microphone,
-                {
-                  mimeType
-                }
-              )
-            : new MediaRecorder(
-                microphone
-              );
+          new MediaRecorder(
+            microphone
+          );
 
 
         recorder.ondataavailable =
           event => {
 
             if (
-              event.data &&
               event.data.size
             ) {
 
@@ -2143,31 +2188,14 @@ if ($("record")) {
               );
 
 
-            const finalType =
-              recorder.mimeType ||
-              "audio/webm";
-
-
             voiceBlob =
               new Blob(
                 recordedChunks,
                 {
                   type:
-                    finalType
+                    recorder.mimeType
                 }
               );
-
-
-            console.log(
-              "VOICE BLOB:",
-              {
-                size:
-                  voiceBlob.size,
-
-                type:
-                  voiceBlob.type
-              }
-            );
 
 
             if ($("preview")) {
@@ -2212,14 +2240,7 @@ if ($("record")) {
 
       }
 
-
       catch (error) {
-
-        console.error(
-          "MICROPHONE ERROR:",
-          error
-        );
-
 
         alert(
           error.message
@@ -2251,47 +2272,21 @@ if ($("sendVoice")) {
       }
 
 
-      if (!supabaseClient) {
-
-        alert(
-          "Supabase is not connected."
-        );
-
-        return;
-
-      }
-
-
       const recordedMimeType =
         voiceBlob.type ||
         "audio/webm";
 
 
-      let extension =
-        "webm";
-
-
-      if (
+      const extension =
         recordedMimeType.includes(
           "mp4"
         )
-      ) {
-
-        extension =
-          "mp4";
-
-      }
-
-      else if (
-        recordedMimeType.includes(
-          "ogg"
-        )
-      ) {
-
-        extension =
-          "ogg";
-
-      }
+          ? "mp4"
+          : recordedMimeType.includes(
+              "ogg"
+            )
+              ? "ogg"
+              : "webm";
 
 
       const filename =
@@ -2303,7 +2298,7 @@ if ($("sendVoice")) {
 
 
       $("connectStatus").textContent =
-        "Uploading voice message...";
+        "Uploading voice...";
 
 
       const upload =
@@ -2317,22 +2312,12 @@ if ($("sendVoice")) {
             voiceBlob,
             {
               contentType:
-                recordedMimeType,
-
-              upsert:
-                false
-
+                recordedMimeType
             }
           );
 
 
       if (upload.error) {
-
-        console.error(
-          "VOICE UPLOAD ERROR:",
-          upload.error
-        );
-
 
         alert(
           upload.error.message
@@ -2344,6 +2329,7 @@ if ($("sendVoice")) {
 
 
       const {
+        data,
         error
       } =
         await supabaseClient
@@ -2362,16 +2348,12 @@ if ($("sendVoice")) {
             media_path:
               filename
 
-          });
+          })
+          .select()
+          .single();
 
 
       if (error) {
-
-        console.error(
-          "VOICE MESSAGE ERROR:",
-          error
-        );
-
 
         alert(
           error.message
@@ -2386,22 +2368,16 @@ if ($("sendVoice")) {
         null;
 
 
-      recordedChunks =
-        [];
-
-
       if ($("preview")) {
-
-        $("preview").pause();
-
-        $("preview").src =
-          "";
 
         $("preview")
           .classList
           .add(
             "hidden"
           );
+
+        $("preview").src =
+          "";
 
       }
 
@@ -2417,11 +2393,31 @@ if ($("sendVoice")) {
       }
 
 
+      /*
+        Display immediately.
+      */
+
+      if (
+        data &&
+        data.id
+      ) {
+
+        await displayMessage(
+          data
+        );
+
+        displayedMessageIds.add(
+          data.id
+        );
+
+        $("messages").scrollTop =
+          $("messages").scrollHeight;
+
+      }
+
+
       $("connectStatus").textContent =
         "✓ Voice message sent";
-
-
-      await loadMessages();
 
     };
 
@@ -2432,21 +2428,6 @@ if ($("sendVoice")) {
    SHARE FILE
 ========================================================= */
 
-/*
-  HTML should contain:
-
-  <button id="shareFile">
-    📎 Share File
-  </button>
-
-  <input
-    id="fileInput"
-    type="file"
-    hidden
-  >
-*/
-
-
 if ($("shareFile")) {
 
   $("shareFile").onclick =
@@ -2456,17 +2437,6 @@ if ($("shareFile")) {
 
         alert(
           "Connect to a user first."
-        );
-
-        return;
-
-      }
-
-
-      if (!$("fileInput")) {
-
-        alert(
-          "File input is missing from the HTML."
         );
 
         return;
@@ -2487,7 +2457,8 @@ if ($("fileInput")) {
     async () => {
 
       const file =
-        $("fileInput").files[0];
+        $("fileInput")
+          .files[0];
 
 
       if (!file) {
@@ -2503,26 +2474,8 @@ if ($("fileInput")) {
           "Connect to a user first."
         );
 
-
         $("fileInput").value =
           "";
-
-
-        return;
-
-      }
-
-
-      if (!supabaseClient) {
-
-        alert(
-          "Supabase is not connected."
-        );
-
-
-        $("fileInput").value =
-          "";
-
 
         return;
 
@@ -2530,7 +2483,7 @@ if ($("fileInput")) {
 
 
       /*
-        Maximum file size:
+        Maximum:
         25 MB
       */
 
@@ -2549,10 +2502,8 @@ if ($("fileInput")) {
           "File is too large. Maximum size is 25 MB."
         );
 
-
         $("fileInput").value =
           "";
-
 
         return;
 
@@ -2567,10 +2518,6 @@ if ($("fileInput")) {
 
       try {
 
-        /*
-          Clean filename.
-        */
-
         const safeName =
           file.name
             .replace(
@@ -2579,11 +2526,6 @@ if ($("fileInput")) {
             );
 
 
-        /*
-          Store each user's files
-          inside their own folder.
-        */
-
         const filePath =
           myUserId +
           "/" +
@@ -2591,11 +2533,6 @@ if ($("fileInput")) {
           "-" +
           safeName;
 
-
-        /*
-          Upload file to:
-          shared-files
-        */
 
         const upload =
           await supabaseClient
@@ -2607,14 +2544,12 @@ if ($("fileInput")) {
               filePath,
               file,
               {
-
                 contentType:
                   file.type ||
                   "application/octet-stream",
 
                 upsert:
                   false
-
               }
             );
 
@@ -2631,18 +2566,13 @@ if ($("fileInput")) {
             "File upload error: " +
             upload.error.message;
 
-
           return;
 
         }
 
 
-        /*
-          Save file information
-          inside safe_messages.
-        */
-
         const {
+          data,
           error
         } =
           await supabaseClient
@@ -2664,7 +2594,9 @@ if ($("fileInput")) {
               media_path:
                 filePath
 
-            });
+            })
+            .select()
+            .single();
 
 
         if (error) {
@@ -2679,7 +2611,6 @@ if ($("fileInput")) {
             "File message error: " +
             error.message;
 
-
           return;
 
         }
@@ -2689,14 +2620,33 @@ if ($("fileInput")) {
           "";
 
 
+        /*
+          Display immediately.
+        */
+
+        if (
+          data &&
+          data.id
+        ) {
+
+          await displayMessage(
+            data
+          );
+
+          displayedMessageIds.add(
+            data.id
+          );
+
+          $("messages").scrollTop =
+            $("messages").scrollHeight;
+
+        }
+
+
         $("connectStatus").textContent =
           "✓ File shared";
 
-
-        await loadMessages();
-
       }
-
 
       catch (error) {
 
@@ -2830,14 +2780,7 @@ async function startCall() {
 
   }
 
-
   catch (error) {
-
-    console.error(
-      "CALL ERROR:",
-      error
-    );
-
 
     $("callStatus").textContent =
       error.message;
@@ -2903,10 +2846,6 @@ async function sendCallSignal(
 }
 
 
-/* =========================================================
-   SUBSCRIBE CALLS
-========================================================= */
-
 function subscribeCalls() {
 
   if (
@@ -2948,7 +2887,6 @@ function subscribeCalls() {
 
           table:
             "safe_call_signals"
-
         },
         async payload => {
 
@@ -3173,7 +3111,6 @@ async function handleCallSignal(
 
     }
 
-
     catch (error) {
 
       console.error(
@@ -3215,7 +3152,6 @@ if ($("hangup")) {
             track =>
               track.stop()
           );
-
 
         localStream =
           null;
@@ -3430,7 +3366,6 @@ if ($("route")) {
           L.geoJSON(
             route.geometry,
             {
-
               style: {
 
                 color:
@@ -3450,10 +3385,7 @@ if ($("route")) {
           routeLayer.getBounds(),
           {
             padding:
-              [
-                25,
-                25
-              ]
+              [25, 25]
           }
         );
 
@@ -3537,13 +3469,11 @@ if ($("route")) {
 
       }
 
-
       catch (error) {
 
         $("routeInfo")
           .textContent =
           error.message;
-
 
         $("routeState")
           .textContent =
@@ -3706,7 +3636,6 @@ async function findNearby(
 
           body:
             query
-
         }
       );
 
@@ -3893,7 +3822,6 @@ async function findNearby(
       );
 
   }
-
 
   catch (error) {
 
