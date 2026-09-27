@@ -1,6 +1,6 @@
 /* =========================================================
-   SAFE ROUTE - PHASE 1
-   UPDATED COMMUNICATION LAYOUT
+   SAFE ROUTE
+   APPLE-STYLE COMMUNICATION INTERFACE
 ========================================================= */
 
 * {
@@ -9,30 +9,33 @@
 
 :root {
   --bg: #07111f;
-  --card: #101d30;
-  --card2: #162740;
-  --text: #f6f8fb;
-  --muted: #9cabc0;
+  --card: rgba(17, 30, 49, .86);
+  --glass: rgba(255,255,255,.065);
+  --glass-hover: rgba(255,255,255,.11);
+  --text: #f7f9fc;
+  --muted: #98a8bd;
   --line: rgba(255,255,255,.10);
   --blue: #55a5ff;
-  --blue2: #347fe7;
+  --blue-soft: rgba(85,165,255,.18);
   --danger: #ff5968;
-  --green: #55d6a0;
 }
 
 html,
 body {
   margin: 0;
+  min-height: 100%;
   background:
     radial-gradient(
-      circle at 90% 0,
-      #183454,
-      #07111f 45%
+      circle at 85% 0%,
+      #193a60 0%,
+      #07111f 42%
     );
   color: var(--text);
   font-family:
-    system-ui,
     -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "SF Pro Text",
     "Segoe UI",
     sans-serif;
 }
@@ -56,7 +59,7 @@ a {
 
 
 /* =========================================================
-   MAIN CONTAINERS
+   MAIN
 ========================================================= */
 
 .topbar,
@@ -70,44 +73,45 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 18px;
+  margin-bottom: 16px;
 }
 
 .eyebrow {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: .18em;
+  letter-spacing: .20em;
   color: #8bd7ff;
 }
 
 h1 {
-  margin: 2px 0;
-  font-size: 30px;
+  margin: 3px 0;
+  font-size: 31px;
+  letter-spacing: -.03em;
 }
 
 h2 {
-  font-size: 17px;
   margin: 0;
+  font-size: 17px;
 }
 
 .topbar p {
-  margin: 4px 0;
+  margin: 4px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 
 /* =========================================================
-   APP LAYOUT
+   APP GRID
 ========================================================= */
 
 .app {
   display: grid;
   grid-template-columns:
     minmax(0, 1.5fr)
-    minmax(340px, .75fr);
-  gap: 15px;
+    minmax(350px, .75fr);
+  gap: 16px;
 }
 
 
@@ -118,10 +122,12 @@ h2 {
 .map-wrap,
 .card {
   border: 1px solid var(--line);
-  background: rgba(16,29,48,.94);
-  border-radius: 18px;
+  background: rgba(16,29,48,.90);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-radius: 22px;
   box-shadow:
-    0 20px 55px rgba(0,0,0,.28);
+    0 24px 70px rgba(0,0,0,.30);
 }
 
 .map-wrap {
@@ -131,31 +137,29 @@ h2 {
 }
 
 #map {
-  height: 650px;
   width: 100%;
+  height: 650px;
 }
 
 .map-status {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
+  left: 13px;
+  bottom: 13px;
   z-index: 1000;
 
-  background:
-    rgba(7,17,31,.92);
+  background: rgba(5,13,24,.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 
   padding: 8px 11px;
+  border-radius: 12px;
 
-  border-radius: 10px;
-
-  font-size: 12px;
-
-  max-width: 85%;
+  font-size: 11px;
 }
 
 
 /* =========================================================
-   RIGHT SIDE
+   SIDE
 ========================================================= */
 
 .side {
@@ -165,7 +169,7 @@ h2 {
 }
 
 .card {
-  padding: 15px;
+  padding: 16px;
 }
 
 .title-row {
@@ -177,27 +181,31 @@ h2 {
 
 
 /* =========================================================
-   BADGES
+   BADGE
 ========================================================= */
 
 .badge {
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 700;
 
-  background: #273851;
-  color: #bdd1e9;
+  background: rgba(255,255,255,.08);
 
-  padding: 5px 8px;
+  color: #c4d2e3;
+
+  padding: 5px 9px;
 
   border-radius: 999px;
+
+  border: 1px solid rgba(255,255,255,.06);
 }
 
 .badge.ok {
-  background: #173d31;
+  background: rgba(45,180,125,.16);
   color: #91f0c2;
 }
 
 .badge.warn {
-  background: #4a351b;
+  background: rgba(255,173,52,.16);
   color: #ffd78f;
 }
 
@@ -209,13 +217,9 @@ h2 {
 .primary,
 .secondary,
 .danger,
-.icon,
-.tab,
-.nearby button,
-.record,
-.communication-option {
+.icon {
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 12px;
   color: white;
 }
 
@@ -230,29 +234,27 @@ h2 {
   padding: 10px 14px;
 
   font-weight: 800;
+
+  box-shadow:
+    0 7px 22px rgba(52,127,231,.22);
 }
 
 .secondary {
-  background: var(--card2);
-
+  background: rgba(255,255,255,.07);
   padding: 10px 13px;
-
   font-weight: 700;
 }
 
 .danger {
-  background: #421c25;
-
+  background: rgba(255,60,80,.16);
   padding: 10px 13px;
 }
 
 .icon {
-  background: var(--card2);
-
+  background: rgba(255,255,255,.07);
   width: 38px;
   height: 38px;
-
-  font-size: 19px;
+  font-size: 18px;
 }
 
 .full {
@@ -261,13 +263,64 @@ h2 {
 
 
 /* =========================================================
-   INPUT ROW
+   SAFE ID
 ========================================================= */
+
+.safe-id-box {
+  margin-top: 13px;
+
+  padding: 13px;
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.025)
+    );
+
+  border: 1px solid var(--line);
+
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.04);
+}
+
+.small {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.safe-id {
+  margin-top: 4px;
+
+  font-size: 23px;
+
+  font-weight: 900;
+
+  letter-spacing: .08em;
+
+  color: #8bd7ff;
+}
+
+.safe-id-box .full {
+  margin-top: 10px;
+}
+
+
+/* =========================================================
+   CONNECT
+========================================================= */
+
+.connect-box {
+  margin-top: 12px;
+}
 
 .row {
   display: flex;
   gap: 7px;
-  margin-top: 10px;
+  margin-top: 9px;
 }
 
 .row input,
@@ -275,11 +328,11 @@ h2 {
   min-width: 0;
   flex: 1;
 
-  background: #091423;
+  background: rgba(4,12,23,.78);
 
   border: 1px solid var(--line);
 
-  border-radius: 10px;
+  border-radius: 12px;
 
   color: white;
 
@@ -290,55 +343,10 @@ h2 {
 
 .row input:focus,
 .modal-box input:focus {
-  border-color: var(--blue);
-}
+  border-color: rgba(85,165,255,.65);
 
-
-/* =========================================================
-   SAFE ROUTE ID
-========================================================= */
-
-.safe-id-box {
-  margin-top: 12px;
-
-  padding: 12px;
-
-  background: #091423;
-
-  border: 1px solid var(--line);
-
-  border-radius: 13px;
-}
-
-.safe-id {
-  margin-top: 4px;
-
-  font-size: 22px;
-
-  font-weight: 900;
-
-  letter-spacing: .08em;
-
-  color: #8bd7ff;
-}
-
-.safe-id-box .full {
-  margin-top: 9px;
-}
-
-
-/* =========================================================
-   CONNECT BOX
-========================================================= */
-
-.connect-box {
-  margin-top: 11px;
-}
-
-.small {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 7px;
+  box-shadow:
+    0 0 0 3px rgba(85,165,255,.08);
 }
 
 .blue {
@@ -347,36 +355,54 @@ h2 {
 
 
 /* =========================================================
-   NEW COMMUNICATION MENU
+   APP LAUNCHER
+   APPLE STYLE ICON GRID
 ========================================================= */
 
 .communication-menu {
+
   display: grid;
 
   grid-template-columns:
     repeat(3, 1fr);
 
-  gap: 7px;
+  gap: 10px;
 
-  margin-top: 13px;
+  margin-top: 15px;
+
+  padding: 3px;
 }
 
 
-/* Individual option */
+/* =========================================================
+   APP ICON
+========================================================= */
 
 .communication-option {
+
   position: relative;
 
-  min-height: 76px;
+  border: 1px solid
+    rgba(255,255,255,.09);
+
+  border-radius: 19px;
+
+  min-height: 88px;
+
+  padding: 10px 5px;
+
+  color: white;
 
   background:
     linear-gradient(
       145deg,
-      #0c1b2e,
-      #091423
+      rgba(255,255,255,.075),
+      rgba(255,255,255,.025)
     );
 
-  padding: 10px 6px;
+  backdrop-filter: blur(18px);
+
+  -webkit-backdrop-filter: blur(18px);
 
   display: flex;
 
@@ -389,71 +415,178 @@ h2 {
   text-align: center;
 
   transition:
-    transform .15s ease,
-    border-color .15s ease,
-    background .15s ease;
+    transform .16s ease,
+    background .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease;
+
+  -webkit-tap-highlight-color:
+    transparent;
 }
+
+
+/* Apple-like hover */
 
 .communication-option:hover {
-  transform: translateY(-2px);
+
+  transform:
+    translateY(-2px)
+    scale(1.015);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.12),
+      rgba(255,255,255,.045)
+    );
 
   border-color:
-    rgba(85,165,255,.55);
-
-  background:
-    linear-gradient(
-      145deg,
-      #122b49,
-      #0c1b2e
-    );
+    rgba(255,255,255,.17);
 }
 
+
+/* Press */
+
+.communication-option:active {
+
+  transform:
+    scale(.95);
+}
+
+
+/* Selected */
+
 .communication-option.active {
-  border-color: var(--blue);
 
   background:
     linear-gradient(
       145deg,
-      #17385f,
-      #102942
+      rgba(85,165,255,.25),
+      rgba(85,165,255,.08)
     );
+
+  border-color:
+    rgba(85,165,255,.70);
 
   box-shadow:
     0 0 0 1px
-    rgba(85,165,255,.10);
-}
-
-.communication-option .option-icon {
-  font-size: 25px;
-
-  line-height: 1;
-
-  margin-bottom: 6px;
-}
-
-.communication-option .option-title {
-  font-size: 10px;
-
-  font-weight: 800;
-
-  line-height: 1.2;
-}
-
-.communication-option .option-subtitle {
-  font-size: 8px;
-
-  color: var(--muted);
-
-  margin-top: 3px;
+      rgba(85,165,255,.12),
+    0 8px 28px
+      rgba(85,165,255,.12);
 }
 
 
 /* =========================================================
-   COMMUNICATION PANELS
+   ICON
+========================================================= */
+
+.communication-option .option-icon {
+
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 14px;
+
+  font-size: 27px;
+
+  margin-bottom: 7px;
+
+  background:
+    rgba(255,255,255,.075);
+
+  box-shadow:
+    inset 0 1px
+      rgba(255,255,255,.08);
+}
+
+
+/* Selected icon */
+
+.communication-option.active
+.option-icon {
+
+  background:
+    rgba(85,165,255,.18);
+
+  box-shadow:
+    0 0 22px
+      rgba(85,165,255,.14);
+}
+
+
+/* =========================================================
+   APP NAME
+========================================================= */
+
+.communication-option .option-title {
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: -.01em;
+}
+
+
+/* =========================================================
+   SUBTITLE
+========================================================= */
+
+.communication-option .option-subtitle {
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 8px;
+
+  line-height: 1.1;
+}
+
+
+/* =========================================================
+   OPENED FEATURE AREA
 ========================================================= */
 
 .panel {
-  margin-top: 11px;
+
+  margin-top: 13px;
+
+  padding: 13px;
+
+  border-radius: 17px;
+
+  background:
+    rgba(5,14,26,.62);
+
+  border:
+    1px solid
+    rgba(255,255,255,.075);
+
+  animation:
+    panelOpen .18s ease;
+}
+
+@keyframes panelOpen {
+
+  from {
+    opacity: 0;
+    transform:
+      translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0);
+  }
+
 }
 
 .hidden {
@@ -466,29 +599,31 @@ h2 {
 ========================================================= */
 
 .messages {
+
   height: 215px;
 
   overflow-y: auto;
 
   margin: 8px 0;
 
-  background: #081321;
+  background:
+    rgba(3,10,19,.75);
 
-  border: 1px solid var(--line);
+  border:
+    1px solid var(--line);
 
-  border-radius: 12px;
+  border-radius: 14px;
 
   padding: 9px;
-
-  scroll-behavior: auto;
 }
 
 .bubble {
+
   max-width: 82%;
 
   padding: 8px 10px;
 
-  border-radius: 11px;
+  border-radius: 13px;
 
   margin: 6px 0;
 
@@ -498,23 +633,32 @@ h2 {
 }
 
 .bubble.me {
+
   margin-left: auto;
 
-  background: #21538d;
+  background:
+    linear-gradient(
+      135deg,
+      #21538d,
+      #2868ad
+    );
 }
 
 .bubble.them {
-  background: #19293d;
+
+  background:
+    rgba(255,255,255,.08);
 }
 
 .bubble time {
+
   display: block;
+
+  margin-top: 4px;
 
   font-size: 9px;
 
   color: #b3c1d2;
-
-  margin-top: 4px;
 }
 
 
@@ -523,6 +667,7 @@ h2 {
 ========================================================= */
 
 .record-row {
+
   display: flex;
 
   align-items: center;
@@ -533,16 +678,21 @@ h2 {
 }
 
 .record {
-  background: #371b24;
+
+  border: 1px solid var(--line);
+
+  border-radius: 12px;
+
+  color: white;
+
+  background:
+    rgba(255,70,90,.15);
 
   padding: 10px 13px;
 }
 
-.record:hover {
-  background: #49212c;
-}
-
 .audio {
+
   width: 100%;
 
   margin: 8px 0;
@@ -554,9 +704,11 @@ h2 {
 ========================================================= */
 
 .call-status {
-  background: #091423;
 
-  border-radius: 11px;
+  background:
+    rgba(4,12,23,.78);
+
+  border-radius: 13px;
 
   padding: 12px;
 
@@ -566,6 +718,7 @@ h2 {
 }
 
 #remoteAudio {
+
   width: 100%;
 
   margin-top: 10px;
@@ -573,31 +726,22 @@ h2 {
 
 
 /* =========================================================
-   LOCATION
-========================================================= */
-
-#sharePanel .muted,
-#voicePanel .muted,
-#callPanel .muted,
-#filePanel .muted {
-  line-height: 1.5;
-}
-
-
-/* =========================================================
-   FILE SHARING
+   FILE
 ========================================================= */
 
 #fileInfo {
+
   margin-top: 10px;
 
   padding: 10px;
 
-  background: #091423;
+  background:
+    rgba(4,12,23,.78);
 
-  border: 1px solid var(--line);
+  border:
+    1px solid var(--line);
 
-  border-radius: 10px;
+  border-radius: 12px;
 
   min-height: 40px;
 
@@ -605,6 +749,7 @@ h2 {
 }
 
 #sendFile:disabled {
+
   opacity: .45;
 
   cursor: not-allowed;
@@ -612,7 +757,7 @@ h2 {
 
 
 /* =========================================================
-   ROUTE ADVISORY
+   ROUTE
 ========================================================= */
 
 .route-info {
@@ -620,6 +765,7 @@ h2 {
 }
 
 .stats {
+
   display: grid;
 
   grid-template-columns:
@@ -631,31 +777,38 @@ h2 {
 }
 
 .stat {
-  background: #091423;
+
+  background:
+    rgba(4,12,23,.72);
 
   padding: 10px;
 
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .stat b {
+
   display: block;
 
   font-size: 17px;
 }
 
 .stat span {
+
   font-size: 10px;
 
   color: var(--muted);
 }
 
 .advice {
+
   margin-top: 8px;
 
-  background: #0c1b2e;
+  background:
+    rgba(85,165,255,.07);
 
-  border-left: 3px solid var(--blue);
+  border-left:
+    3px solid var(--blue);
 
   padding: 9px;
 
@@ -670,10 +823,11 @@ h2 {
 ========================================================= */
 
 .nearby {
+
   display: grid;
 
   grid-template-columns:
-    repeat(4, 1fr);
+    repeat(4,1fr);
 
   gap: 7px;
 
@@ -681,12 +835,22 @@ h2 {
 }
 
 .nearby button {
-  background: #091423;
+
+  border:
+    1px solid var(--line);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  color: white;
 
   padding: 10px 3px;
 }
 
 .nearby button span {
+
   display: block;
 
   font-size: 10px;
@@ -695,12 +859,15 @@ h2 {
 }
 
 .nearby button.active {
+
   border-color: var(--blue);
 
-  background: #122c4a;
+  background:
+    var(--blue-soft);
 }
 
 .results {
+
   max-height: 190px;
 
   overflow: auto;
@@ -709,17 +876,20 @@ h2 {
 }
 
 .place {
+
   display: flex;
 
   justify-content: space-between;
 
   gap: 8px;
 
-  background: #091423;
+  background:
+    rgba(4,12,23,.72);
 
-  border: 1px solid var(--line);
+  border:
+    1px solid var(--line);
 
-  border-radius: 10px;
+  border-radius: 12px;
 
   padding: 9px;
 
@@ -731,6 +901,7 @@ h2 {
 }
 
 .place small {
+
   display: block;
 
   color: var(--muted);
@@ -739,11 +910,13 @@ h2 {
 }
 
 .place button {
+
   border: 0;
 
-  border-radius: 7px;
+  border-radius: 8px;
 
-  background: #203b5c;
+  background:
+    #203b5c;
 
   color: white;
 
@@ -758,11 +931,13 @@ h2 {
 ========================================================= */
 
 .emergency {
+
   border-color:
     rgba(255,89,104,.18);
 }
 
 .emergency-grid {
+
   display: grid;
 
   grid-template-columns:
@@ -774,6 +949,7 @@ h2 {
 }
 
 .emergency-grid a {
+
   display: grid;
 
   grid-template-columns:
@@ -785,29 +961,31 @@ h2 {
 
   color: white;
 
-  background: #281a20;
+  background:
+    rgba(255,70,90,.10);
 
   padding: 10px;
 
-  border-radius: 11px;
+  border-radius: 12px;
 }
 
 .emergency-grid small {
+
   grid-column: 2;
 
   color: #ffb7bf;
 }
 
 .emergency-grid a:nth-child(2) {
-  background: #182c27;
+  background: rgba(60,190,135,.10);
 }
 
 .emergency-grid a:nth-child(3) {
-  background: #302319;
+  background: rgba(255,170,60,.10);
 }
 
 .emergency-grid a:nth-child(4) {
-  background: #192b40;
+  background: rgba(70,150,230,.10);
 }
 
 
@@ -816,13 +994,17 @@ h2 {
 ========================================================= */
 
 .modal {
+
   position: fixed;
 
   inset: 0;
 
   z-index: 5000;
 
-  background: rgba(0,0,0,.72);
+  background:
+    rgba(0,0,0,.72);
+
+  backdrop-filter: blur(12px);
 
   display: flex;
 
@@ -834,15 +1016,19 @@ h2 {
 }
 
 .modal-box {
+
   position: relative;
 
-  width: min(410px,100%);
+  width:
+    min(410px,100%);
 
-  background: #101d30;
+  background:
+    rgba(16,29,48,.95);
 
-  border: 1px solid var(--line);
+  border:
+    1px solid var(--line);
 
-  border-radius: 18px;
+  border-radius: 20px;
 
   padding: 20px;
 
@@ -851,6 +1037,7 @@ h2 {
 }
 
 .modal-box input {
+
   display: block;
 
   width: 100%;
@@ -859,10 +1046,12 @@ h2 {
 }
 
 .modal-box button {
+
   margin-top: 7px;
 }
 
 .close {
+
   position: absolute;
 
   right: 10px;
@@ -884,6 +1073,7 @@ h2 {
 ========================================================= */
 
 footer {
+
   padding: 12px 0;
 
   color: #718097;
@@ -895,7 +1085,7 @@ footer {
 
 
 /* =========================================================
-   MOBILE
+   TABLET
 ========================================================= */
 
 @media (max-width: 950px) {
@@ -905,21 +1095,25 @@ footer {
   }
 
   .topbar {
+
     align-items: flex-start;
 
     flex-direction: column;
   }
 
   .topbar .primary {
+
     width: 100%;
   }
 
   .app {
+
     grid-template-columns: 1fr;
   }
 
   .map-wrap,
   #map {
+
     height: 430px;
 
     min-height: 430px;
@@ -929,33 +1123,55 @@ footer {
 
 
 /* =========================================================
-   TABLET / SMALL MOBILE
+   MOBILE
 ========================================================= */
 
 @media (max-width: 600px) {
 
-  .communication-menu {
-    grid-template-columns:
-      repeat(3, 1fr);
+  .card {
+    padding: 13px;
+    border-radius: 19px;
+  }
 
-    gap: 6px;
+  h1 {
+    font-size: 27px;
+  }
+
+  .communication-menu {
+
+    grid-template-columns:
+      repeat(3,1fr);
+
+    gap: 7px;
   }
 
   .communication-option {
-    min-height: 70px;
 
-    padding: 8px 4px;
+    min-height: 78px;
+
+    border-radius: 17px;
   }
 
-  .communication-option .option-icon {
-    font-size: 23px;
+  .communication-option
+  .option-icon {
+
+    width: 42px;
+    height: 42px;
+
+    border-radius: 13px;
+
+    font-size: 24px;
   }
 
-  .communication-option .option-title {
+  .communication-option
+  .option-title {
+
     font-size: 9px;
   }
 
-  .communication-option .option-subtitle {
+  .communication-option
+  .option-subtitle {
+
     display: none;
   }
 
@@ -963,7 +1179,7 @@ footer {
 
 
 /* =========================================================
-   VERY SMALL PHONES
+   SMALL PHONES
 ========================================================= */
 
 @media (max-width: 400px) {
@@ -972,25 +1188,36 @@ footer {
     padding: 6px;
   }
 
-  .card {
-    padding: 12px;
+  .communication-menu {
+
+    grid-template-columns:
+      repeat(3,1fr);
+
+    gap: 5px;
+  }
+
+  .communication-option {
+
+    min-height: 72px;
 
     border-radius: 15px;
   }
 
-  h1 {
-    font-size: 26px;
+  .communication-option
+  .option-icon {
+
+    width: 38px;
+    height: 38px;
+
+    font-size: 22px;
+
+    margin-bottom: 5px;
   }
 
-  .communication-menu {
-    grid-template-columns:
-      repeat(2, 1fr);
+  .communication-option
+  .option-title {
 
-    gap: 7px;
-  }
-
-  .communication-option {
-    min-height: 74px;
+    font-size: 8px;
   }
 
   .messages {
@@ -998,11 +1225,13 @@ footer {
   }
 
   .nearby {
+
     grid-template-columns:
       1fr 1fr;
   }
 
   .emergency-grid {
+
     grid-template-columns:
       1fr;
   }
@@ -1029,11 +1258,13 @@ footer {
 
 .messages::-webkit-scrollbar,
 .results::-webkit-scrollbar {
+
   width: 5px;
 }
 
 .messages::-webkit-scrollbar-thumb,
 .results::-webkit-scrollbar-thumb {
+
   background: #30445f;
 
   border-radius: 10px;
@@ -1041,5 +1272,6 @@ footer {
 
 .messages::-webkit-scrollbar-track,
 .results::-webkit-scrollbar-track {
+
   background: transparent;
 }
