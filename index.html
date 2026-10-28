@@ -36,32 +36,22 @@
     box-sizing: border-box;
   }
 
-  /* Default Light Mode Background */
-  html {
-    background-color: #ffffff;
-  }
-
-  /* Dark Mode Background when user toggles dark mode in-app */
-  html.dark {
-    background-color: #0f172a;
-  }
-
-  /* Dark Mode Background when phone system is set to dark mode */
-  @media (prefers-color-scheme: dark) {
-    html {
-      background-color: #0f172a;
-    }
-  }
-
+  /* Let html and body fill the exact height of the screen */
   html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     min-height: 100dvh;
+    background-color: inherit;
+  }
+
+  /* If you have a bottom navigation bar or footer, extend its color into the bottom bar */
+  footer, nav.bottom-nav, .bottom-bar {
     padding-bottom: env(safe-area-inset-bottom);
   }
 </style>
-<!-- Service Worker Registration -->
+  
+  <!-- Service Worker Registration -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -727,7 +717,42 @@ class="primary"
     });
   </script>
   
-  
+ <!-- Auto-Sync Status Bar Color -->
+<script>
+  function autoSyncThemeColors() {
+    // 1. Find the top element (header, nav, or body)
+    const topElement = document.querySelector('header') || 
+                       document.querySelector('nav') || 
+                       document.body;
+
+    if (!topElement) return;
+
+    // 2. Read its real background color from the screen
+    const computedBg = window.getComputedStyle(topElement).backgroundColor;
+
+    // 3. Update or create the <meta name="theme-color"> tag
+    let metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (!metaTheme) {
+      metaTheme = document.createElement('meta');
+      metaTheme.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaTheme);
+    }
+    
+    // Only apply if it's a solid visible color (not transparent)
+    if (computedBg && computedBg !== 'rgba(0, 0, 0, 0)' && computedBg !== 'transparent') {
+      metaTheme.setAttribute('content', computedBg);
+    }
+  }
+
+  // Run on load and whenever dark mode toggles
+  window.addEventListener('load', autoSyncThemeColors);
+  window.addEventListener('resize', autoSyncThemeColors);
+
+  // Watch for class changes (light / dark mode buttons)
+  const themeObserver = new MutationObserver(autoSyncThemeColors);
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+</script> 
   
 
 </body>  
