@@ -1,8 +1,8 @@
 {
   "id": "/Care-portal/",
-  "name": "Care Hospitals Portal",
-  "short_name": "Care Portal",
-  "description": "Care Hospitals Patient & Staff Portal",
+  "name": "T&C Life Line",
+  "short_name": "Life Line",
+  "description": "No-Sim is required for calling texting & more",
   "start_url": "/Care-portal/",
   "scope": "/Care-portal/",
   "display": "standalone",
